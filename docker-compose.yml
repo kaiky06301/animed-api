@@ -1,0 +1,53 @@
+version: '3.8'
+
+# =====================================================
+# CLYVO VET - docker-compose para DevOps
+# Inclui app + Oracle XE
+# =====================================================
+
+services:
+  oracle-db:
+    image: gvenzl/oracle-xe:21-slim
+    container_name: clyvo-oracle
+    environment:
+      ORACLE_PASSWORD: ClyvoVet2026
+      ORACLE_DATABASE: CLYVOVET
+      APP_USER: clyvo
+      APP_USER_PASSWORD: clyvo123
+    ports:
+      - "1521:1521"
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+    networks:
+      - clyvo-network
+
+  clyvo-api:
+    build: .
+    container_name: clyvo-vet-api
+    depends_on:
+      oracle-db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: oracle
+      SPRING_DATASOURCE_URL: jdbc:oracle:thin:@oracle-db:1521/CLYVOVET
+      SPRING_DATASOURCE_USERNAME: clyvo
+      SPRING_DATASOURCE_PASSWORD: clyvo123
+      SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: CLYVO
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    networks:
+      - clyvo-network
+
+volumes:
+  oracle-data:
+    name: clyvo-oracle-data
+
+networks:
+  clyvo-network:
+    driver: bridge
