@@ -1,5 +1,5 @@
 -- =====================================================
--- CLYVO VET - Seed de dados iniciais (V2)
+-- Animed - Seed de dados iniciais (V2)
 -- Dados de demonstração para o squad e correção FIAP
 -- =====================================================
 

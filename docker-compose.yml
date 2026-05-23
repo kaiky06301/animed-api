@@ -1,14 +1,14 @@
 version: '3.8'
 
 # =====================================================
-# CLYVO VET - docker-compose para DevOps
+# Animed - docker-compose para DevOps
 # Inclui app + Oracle XE
 # =====================================================
 
 services:
   oracle-db:
     image: gvenzl/oracle-xe:21-slim
-    container_name: clyvo-oracle
+    container_name: animed-oracle
     environment:
       ORACLE_PASSWORD: ClyvoVet2026
       ORACLE_DATABASE: CLYVOVET
@@ -24,11 +24,11 @@ services:
       timeout: 10s
       retries: 10
     networks:
-      - clyvo-network
+      - animed-network
 
-  clyvo-api:
+  animed-api:
     build: .
-    container_name: clyvo-vet-api
+    container_name: animed-api
     depends_on:
       oracle-db:
         condition: service_healthy
@@ -42,12 +42,12 @@ services:
       - "8080:8080"
     restart: unless-stopped
     networks:
-      - clyvo-network
+      - animed-network
 
 volumes:
   oracle-data:
-    name: clyvo-oracle-data
+    name: animed-oracle-data
 
 networks:
-  clyvo-network:
+  animed-network:
     driver: bridge

@@ -1,8 +1,8 @@
-# 🐾 Clyvo VET API
+# 🐾 Animed API
 
 > **API REST de cuidado contínuo e gamificação para pets** - Challenge FIAP 2026
 
-Sistema backend que materializa a proposta da **Clyvo VET**: transformar a jornada de saúde do pet de um modelo *episódico e reativo* em uma experiência **contínua, preventiva e gamificada**, conectando tutores, clínicas e pet shops parceiros num ecossistema único.
+Sistema backend que materializa a proposta da **Animed**: transformar a jornada de saúde do pet de um modelo *episódico e reativo* em uma experiência **contínua, preventiva e gamificada**, conectando tutores, clínicas e pet shops parceiros num ecossistema único.
 
 ---
 
@@ -21,7 +21,7 @@ Sistema backend que materializa a proposta da **Clyvo VET**: transformar a jorna
 
 ## 🎯 Visão Geral
 
-A **Clyvo VET API** resolve um problema crítico do mercado pet brasileiro: a **descontinuidade do cuidado**. Hoje, tutores só interagem com o ecossistema veterinário em momentos pontuais (vacinas, emergências), o que gera:
+A **Animed API** resolve um problema crítico do mercado pet brasileiro: a **descontinuidade do cuidado**. Hoje, tutores só interagem com o ecossistema veterinário em momentos pontuais (vacinas, emergências), o que gera:
 
 - ❌ Pior cuidado preventivo
 - ❌ Menor LTV para clínicas
@@ -40,7 +40,7 @@ Uma **plataforma gamificada** onde cada ação de cuidado vira pontos, descontos
 | **Pet** | Maior frequência de check-ups, vacinas em dia, qualidade de vida |
 | **Clínicas** | Recorrência, fidelização, maior LTV, base de dados longitudinal |
 | **Pet Shops** | Mais vendas via tráfego qualificado, modelo de baixo risco (taxa+comissão) |
-| **Clyvo** | Comissão sobre vendas + assinatura mensal de parceiros + plano premium do usuário |
+| **Animed** | Comissão sobre vendas + assinatura mensal de parceiros + plano premium do usuário |
 
 ---
 
@@ -71,8 +71,8 @@ Uma **plataforma gamificada** onde cada ação de cuidado vira pontos, descontos
 ```
 Produto: Ração Premium R$ 150,00
 Tutor BÁSICO   → paga R$ 150,00 (0% desc)
-Tutor CUIDADOR → paga R$ 142,50 (5% desc) → Clyvo ganha 5% comissão = R$ 7,13
-Tutor PREMIUM  → paga R$ 127,50 (15% desc) → Clyvo ganha 5% comissão = R$ 6,38
+Tutor CUIDADOR → paga R$ 142,50 (5% desc) → Animed ganha 5% comissão = R$ 7,13
+Tutor PREMIUM  → paga R$ 127,50 (15% desc) → Animed ganha 5% comissão = R$ 6,38
 ```
 
 ---
@@ -170,8 +170,8 @@ PetShop (1) ── (N) Consulta
 ### Passo 1 — Clonar o repositório
 
 ```bash
-git clone https://github.com/<usuario>/clyvo-vet-api.git
-cd clyvo-vet-api
+git clone https://github.com/<usuario>/animed-api.git
+cd animed-api
 ```
 
 ### Passo 2 — Configurar credenciais (Oracle FIAP)
@@ -311,7 +311,7 @@ H2 Console: http://localhost:8080/h2-console
 | Tratamento de erros | ✅ | `GlobalExceptionHandler` |
 | DTOs | ✅ | `dto/` (8 DTOs) |
 | Swagger | ✅ | http://localhost:8080/swagger-ui.html |
-| Postman Collection | ✅ | `postman/Clyvo-VET-API.postman_collection.json` |
+| Postman Collection | ✅ | `postman/Animed-API.postman_collection.json` |
 
 ---
 
@@ -331,4 +331,4 @@ H2 Console: http://localhost:8080/h2-console
 
 ## 📄 Licença
 
-Projeto acadêmico desenvolvido para o Challenge FIAP 2026 em parceria com a Clyvo VET.
+Projeto acadêmico desenvolvido para o Challenge FIAP 2026 em parceria com a Animed.

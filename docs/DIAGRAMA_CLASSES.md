@@ -1,4 +1,4 @@
-# 📐 Diagrama de Classes - Clyvo VET
+# 📐 Diagrama de Classes - Animed
 
 ## Diagrama UML (Mermaid)
 

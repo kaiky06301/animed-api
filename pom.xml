@@ -14,8 +14,8 @@
     <groupId>br.com.fiap</groupId>
     <artifactId>clyvo-vet-api</artifactId>
     <version>1.0.0</version>
-    <name>clyvo-vet-api</name>
-    <description>Clyvo VET - API de cuidado contínuo e gamificação para pets</description>
+    <name>animed-api</name>
+    <description>Animed - API de cuidado contínuo e gamificação para pets</description>
 
     <properties>
         <java.version>17</java.version>

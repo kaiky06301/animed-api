@@ -1,4 +1,4 @@
-# 📅 Cronograma de Desenvolvimento - Squad Clyvo VET
+# 📅 Cronograma de Desenvolvimento - Squad Animed
 
 **Challenge FIAP 2026 — Entrega: 24/05/2025**
 **Turma:** 2TDS Fevereiro/2026

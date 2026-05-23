@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "Clyvo VET API",
-    "description": "Coleção completa de endpoints da API Clyvo VET - Challenge FIAP 2026.\n\nFluxo sugerido:\n1. Criar Tutor\n2. Criar PetShop\n3. Criar Pet (vinculado ao tutor)\n4. Registrar Vacina e Consulta\n5. Registrar Transação (compra em pet shop)\n6. Consultar Ranking e Histórico\n\n**Base URL:** http://localhost:8080",
+    "name": "Animed API",
+    "description": "Coleção completa de endpoints da API Animed - Challenge FIAP 2026.\n\nFluxo sugerido:\n1. Criar Tutor\n2. Criar PetShop\n3. Criar Pet (vinculado ao tutor)\n4. Registrar Vacina e Consulta\n5. Registrar Transação (compra em pet shop)\n6. Consultar Ranking e Histórico\n\n**Base URL:** http://localhost:8080",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
