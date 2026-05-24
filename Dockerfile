@@ -1,5 +1,5 @@
 # =====================================================
-# CLYVO VET - Dockerfile multi-stage
+# Animed - Dockerfile multi-stage
 # =====================================================
 
 # === Stage 1: Build ===
@@ -15,7 +15,7 @@ COPY src ./src
 RUN mvn clean package -DskipTests -B
 
 # === Stage 2: Runtime ===
-FROM eclipse-temurin:17-jre-alpine
+FROM bellsoft/liberica-openjre-alpine:17
 WORKDIR /app
 
 # Cria usuário não-root (requisito DevOps FIAP)
