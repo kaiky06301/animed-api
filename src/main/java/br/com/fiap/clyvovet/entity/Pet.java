@@ -1,6 +1,7 @@
 package br.com.fiap.clyvovet.entity;
 
 import br.com.fiap.clyvovet.enums.Especie;
+import br.com.fiap.clyvovet.enums.Sexo;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -33,6 +34,10 @@ public class Pet {
     @Enumerated(EnumType.STRING)
     @Column(name = "ESPECIE", nullable = false, length = 20)
     private Especie especie;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "SEXO", length = 10)
+    private Sexo sexo;
 
     @Column(name = "RACA", length = 80)
     private String raca;

@@ -39,6 +39,7 @@ public class PetService {
         Pet pet = Pet.builder()
                 .nome(request.nome())
                 .especie(request.especie())
+                .sexo(request.sexo())
                 .raca(request.raca())
                 .dataNascimento(request.dataNascimento())
                 .pesoKg(request.pesoKg())
@@ -102,6 +103,7 @@ public class PetService {
 
         pet.setNome(request.nome());
         pet.setEspecie(request.especie());
+        pet.setSexo(request.sexo());
         pet.setRaca(request.raca());
         pet.setDataNascimento(request.dataNascimento());
         pet.setPesoKg(request.pesoKg());
@@ -147,6 +149,7 @@ public class PetService {
                 pet.getId(),
                 pet.getNome(),
                 pet.getEspecie(),
+                pet.getSexo(),
                 pet.getRaca(),
                 pet.getDataNascimento(),
                 idade,

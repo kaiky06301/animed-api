@@ -1,6 +1,7 @@
 package br.com.fiap.clyvovet.dto;
 
 import br.com.fiap.clyvovet.enums.Especie;
+import br.com.fiap.clyvovet.enums.Sexo;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
@@ -18,6 +19,8 @@ public class PetDTO {
 
             @Size(max = 80)
             String raca,
+
+            Sexo sexo,
 
             @PastOrPresent(message = "Data de nascimento não pode ser no futuro")
             LocalDate dataNascimento,
@@ -39,6 +42,7 @@ public class PetDTO {
             Long id,
             String nome,
             Especie especie,
+            Sexo sexo,
             String raca,
             LocalDate dataNascimento,
             Integer idadeAnos,
