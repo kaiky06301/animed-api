@@ -5,6 +5,7 @@ import br.com.fiap.clyvovet.entity.Pet;
 import br.com.fiap.clyvovet.entity.Tutor;
 import br.com.fiap.clyvovet.enums.Especie;
 import br.com.fiap.clyvovet.enums.TipoAcaoPontuacao;
+import br.com.fiap.clyvovet.exception.BusinessException;
 import br.com.fiap.clyvovet.exception.ResourceNotFoundException;
 import br.com.fiap.clyvovet.repository.PetRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,10 +32,24 @@ public class PetService {
     private final TutorService tutorService;
     private final GamificacaoService gamificacaoService;
 
+    /** Máximo de pets por tutor. Acima disso o caso é de plano específico. */
+    private static final int LIMITE_PETS_POR_TUTOR = 5;
+
     @Transactional
     @CacheEvict(value = "pets", allEntries = true)
     public PetDTO.Response criar(PetDTO.Request request) {
         Tutor tutor = tutorService.buscarEntidade(request.idTutor());
+
+        long petsExistentes = petRepository.countByTutorId(tutor.getId());
+
+        if (petsExistentes >= LIMITE_PETS_POR_TUTOR) {
+            throw new BusinessException(
+                    "Limite de " + LIMITE_PETS_POR_TUTOR + " pets por tutor atingido");
+        }
+
+        // Os pontos de cadastro valem apenas para o primeiro pet: do segundo em
+        // diante o pet existe para registrar cuidados, que continuam pontuando.
+        boolean primeiroPet = petsExistentes == 0;
 
         Pet pet = Pet.builder()
                 .nome(request.nome())
@@ -50,20 +65,21 @@ public class PetService {
 
         Pet salvo = petRepository.save(pet);
 
-        // Gamificação: cadastrar pet rende pontos
-        gamificacaoService.registrarAcao(
-                tutor.getId(),
-                TipoAcaoPontuacao.CADASTRO_PET,
-                "Cadastro do pet " + pet.getNome()
-        );
-
-        // Bônus de perfil completo
-        if (isPerfilCompleto(pet)) {
+        if (primeiroPet) {
             gamificacaoService.registrarAcao(
                     tutor.getId(),
-                    TipoAcaoPontuacao.PERFIL_COMPLETO,
-                    "Perfil completo do pet " + pet.getNome()
+                    TipoAcaoPontuacao.CADASTRO_PET,
+                    "Cadastro do pet " + pet.getNome()
             );
+
+            // Bônus de perfil completo, também restrito ao primeiro pet
+            if (isPerfilCompleto(pet)) {
+                gamificacaoService.registrarAcao(
+                        tutor.getId(),
+                        TipoAcaoPontuacao.PERFIL_COMPLETO,
+                        "Perfil completo do pet " + pet.getNome()
+                );
+            }
         }
 
         return toResponse(salvo);

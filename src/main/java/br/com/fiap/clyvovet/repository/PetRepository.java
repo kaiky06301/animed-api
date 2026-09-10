@@ -14,6 +14,9 @@ public interface PetRepository extends JpaRepository<Pet, Long> {
 
     Page<Pet> findByTutorId(Long idTutor, Pageable pageable);
 
+    /** Quantidade de pets do tutor - usada nas regras de gamificação e limite. */
+    long countByTutorId(Long idTutor);
+
     Page<Pet> findByEspecie(Especie especie, Pageable pageable);
 
     Page<Pet> findByNomeContainingIgnoreCase(String nome, Pageable pageable);
