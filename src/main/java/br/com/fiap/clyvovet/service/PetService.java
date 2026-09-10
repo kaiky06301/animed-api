@@ -21,6 +21,10 @@ import java.time.Period;
 
 @Service
 @RequiredArgsConstructor
+// Leitura transacional por padrão: mantém a sessão aberta durante o
+// mapeamento para DTO (open-in-view está desligado). Os métodos de
+// escrita declaram o próprio @Transactional, que prevalece.
+@Transactional(readOnly = true)
 public class PetService {
 
     private final PetRepository petRepository;

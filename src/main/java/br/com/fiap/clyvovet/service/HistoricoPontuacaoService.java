@@ -8,9 +8,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+// Leitura transacional por padrão: mantém a sessão aberta durante o
+// mapeamento para DTO (open-in-view está desligado). Os métodos de
+// escrita declaram o próprio @Transactional, que prevalece.
+@Transactional(readOnly = true)
 public class HistoricoPontuacaoService {
 
     private final HistoricoPontuacaoRepository historicoRepository;
