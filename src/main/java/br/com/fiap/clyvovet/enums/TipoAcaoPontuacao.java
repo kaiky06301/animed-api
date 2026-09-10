@@ -7,6 +7,7 @@ package br.com.fiap.clyvovet.enums;
 public enum TipoAcaoPontuacao {
     CADASTRO_PET(50, "Cadastro completo de pet"),
     PERFIL_COMPLETO(50, "Bônus por perfil completo"),
+    FOTO_PET(15, "Foto do pet adicionada"),
     REGISTRO_VACINA(25, "Registro de vacinação"),
     REGISTRO_CONSULTA(20, "Registro de consulta veterinária"),
     REGISTRO_MEDICACAO(15, "Registro de medicação"),

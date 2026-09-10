@@ -5,6 +5,8 @@ import br.com.fiap.clyvovet.enums.Especie;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -16,6 +18,9 @@ public interface PetRepository extends JpaRepository<Pet, Long> {
 
     /** Quantidade de pets do tutor - usada nas regras de gamificação e limite. */
     long countByTutorId(Long idTutor);
+
+    /** Primeiro pet cadastrado pelo tutor - referência para regras de anti-farming. */
+    Optional<Pet> findFirstByTutorIdOrderByIdAsc(Long idTutor);
 
     Page<Pet> findByEspecie(Especie especie, Pageable pageable);
 

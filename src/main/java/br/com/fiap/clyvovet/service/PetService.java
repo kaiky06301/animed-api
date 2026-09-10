@@ -7,6 +7,7 @@ import br.com.fiap.clyvovet.enums.Especie;
 import br.com.fiap.clyvovet.enums.TipoAcaoPontuacao;
 import br.com.fiap.clyvovet.exception.BusinessException;
 import br.com.fiap.clyvovet.exception.ResourceNotFoundException;
+import br.com.fiap.clyvovet.repository.HistoricoPontuacaoRepository;
 import br.com.fiap.clyvovet.repository.PetRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
@@ -29,6 +30,7 @@ import java.time.Period;
 public class PetService {
 
     private final PetRepository petRepository;
+    private final HistoricoPontuacaoRepository historicoRepository;
     private final TutorService tutorService;
     private final GamificacaoService gamificacaoService;
 
@@ -83,6 +85,42 @@ public class PetService {
         }
 
         return toResponse(salvo);
+    }
+
+    /**
+     * Registra que o pet ganhou foto e credita os pontos correspondentes.
+     *
+     * Assim como o cadastro, a foto só pontua no primeiro pet do tutor, e
+     * apenas uma vez — trocar a foto depois não gera novos pontos.
+     *
+     * @return quantos pontos foram creditados (zero quando não houve crédito)
+     */
+    @Transactional
+    public int registrarFoto(Long idPet) {
+        Pet pet = buscarEntidade(idPet);
+        Long idTutor = pet.getTutor().getId();
+
+        boolean jaRecebeu = historicoRepository.existsByTutorIdAndTipoAcao(
+                idTutor, TipoAcaoPontuacao.FOTO_PET);
+
+        if (jaRecebeu) {
+            return 0;
+        }
+
+        // Só o primeiro pet cadastrado do tutor rende os pontos da foto
+        Pet primeiroPet = petRepository.findFirstByTutorIdOrderByIdAsc(idTutor).orElse(null);
+
+        if (primeiroPet == null || !primeiroPet.getId().equals(idPet)) {
+            return 0;
+        }
+
+        gamificacaoService.registrarAcao(
+                idTutor,
+                TipoAcaoPontuacao.FOTO_PET,
+                "Foto adicionada ao pet " + pet.getNome()
+        );
+
+        return TipoAcaoPontuacao.FOTO_PET.getPontosPadrao();
     }
 
     @Cacheable(value = "pets", key = "#id")

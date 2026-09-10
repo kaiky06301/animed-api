@@ -15,6 +15,8 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 import java.net.URI;
 
 @RestController
@@ -82,6 +84,15 @@ public class PetController {
     @Operation(summary = "Atualizar pet")
     public ResponseEntity<PetDTO.Response> atualizar(@PathVariable Long id, @Valid @RequestBody PetDTO.Request request) {
         return ResponseEntity.ok(petService.atualizar(id, request));
+    }
+
+    @Operation(summary = "Registra que o pet ganhou foto",
+            description = "Credita os pontos da foto, que valem apenas para o primeiro pet e uma única vez.")
+    @ApiResponse(responseCode = "200", description = "Registro processado")
+    @PostMapping("/{id}/foto")
+    public ResponseEntity<Map<String, Integer>> registrarFoto(@PathVariable Long id) {
+        int pontosGanhos = petService.registrarFoto(id);
+        return ResponseEntity.ok(Map.of("pontosGanhos", pontosGanhos));
     }
 
     @DeleteMapping("/{id}")

@@ -12,5 +12,8 @@ public interface HistoricoPontuacaoRepository extends JpaRepository<HistoricoPon
 
     Page<HistoricoPontuacao> findByTutorIdOrderByDataHoraDesc(Long idTutor, Pageable pageable);
 
+    /** Indica se o tutor já recebeu pontos por determinada ação. */
+    boolean existsByTutorIdAndTipoAcao(Long idTutor, TipoAcaoPontuacao tipoAcao);
+
     Page<HistoricoPontuacao> findByTipoAcao(TipoAcaoPontuacao tipo, Pageable pageable);
 }
