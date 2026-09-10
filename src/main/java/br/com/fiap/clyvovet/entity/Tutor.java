@@ -46,6 +46,11 @@ public class Tutor {
     @Builder.Default
     private Integer pontosTotais = 0;
 
+    /** Saldo gastável de moedas. Só pode ser usado a partir do nível Premium. */
+    @Column(name = "MOEDAS", nullable = false)
+    @Builder.Default
+    private Integer moedas = 0;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "NIVEL", nullable = false, length = 20)
     @Builder.Default
@@ -75,8 +80,18 @@ public class Tutor {
     /**
      * Adiciona pontos ao tutor e atualiza o nível automaticamente.
      */
+    /**
+     * Credita a ação: pontos sobem o nível e moedas entram como saldo
+     * gastável, sempre no mesmo valor.
+     */
     public void adicionarPontos(int pontos) {
         this.pontosTotais += pontos;
+        this.moedas += pontos;
         this.nivel = NivelGamificacao.fromPontos(this.pontosTotais);
+    }
+
+    /** Indica se o tutor já pode gastar as moedas acumuladas. */
+    public boolean podeGastarMoedas() {
+        return this.nivel == NivelGamificacao.TUTOR_PREMIUM;
     }
 }

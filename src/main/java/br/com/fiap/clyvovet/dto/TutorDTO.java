@@ -35,6 +35,8 @@ public class TutorDTO {
             String cpf,
             String telefone,
             Integer pontosTotais,
+            Integer moedas,
+            Boolean podeGastarMoedas,
             NivelGamificacao nivel,
             String nivelDescricao,
             Integer descontoPercentual,

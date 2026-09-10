@@ -6,7 +6,7 @@ package br.com.fiap.clyvovet.enums;
  */
 public enum NivelGamificacao {
     BASICO(0, 99, "Básico", 0),
-    CUIDADOR(100, 499, "Cuidador", 5),
+    CUIDADOR(100, 499, "Cuidador", 10),
     TUTOR_PREMIUM(500, Integer.MAX_VALUE, "Tutor Premium", 15);
 
     private final int pontosMinimos;

@@ -106,6 +106,8 @@ public class TutorService {
                 t.getCpf(),
                 t.getTelefone(),
                 t.getPontosTotais(),
+                t.getMoedas(),
+                t.podeGastarMoedas(),
                 t.getNivel(),
                 t.getNivel().getDescricao(),
                 t.getNivel().getDescontoPercentual(),
