@@ -5,9 +5,9 @@ package br.com.fiap.clyvovet.enums;
  * Cada nível desbloqueia benefícios e descontos progressivos.
  */
 public enum NivelGamificacao {
-    BASICO(0, 99, "Básico", 0),
-    CUIDADOR(100, 499, "Cuidador", 10),
-    TUTOR_PREMIUM(500, Integer.MAX_VALUE, "Tutor Premium", 15);
+    BASICO(0, 299, "Básico", 0),
+    CUIDADOR(300, 1199, "Cuidador", 10),
+    TUTOR_PREMIUM(1200, Integer.MAX_VALUE, "Tutor Premium", 15);
 
     private final int pontosMinimos;
     private final int pontosMaximos;
