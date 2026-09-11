@@ -10,9 +10,14 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Repository
 public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
+
+    /** Consultas de um intervalo - usada para calcular horários livres. */
+    List<Consulta> findByDataHoraBetween(LocalDateTime inicio, LocalDateTime fim);
+
 
     Page<Consulta> findByPetId(Long idPet, Pageable pageable);
 
