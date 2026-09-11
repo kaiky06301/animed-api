@@ -32,6 +32,9 @@ public class Usuario implements UserDetails {
     @Column(name = "ID_USUARIO")
     private Long id;
 
+    @Column(name = "NOME", length = 120)
+    private String nome;
+
     @Column(name = "EMAIL", nullable = false, length = 150)
     private String email;
 

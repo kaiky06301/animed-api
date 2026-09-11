@@ -57,6 +57,15 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/api/tutores/**").hasRole("DOUTOR")
                 .requestMatchers("/api/petshops/**").hasRole("DOUTOR")
 
+                // Registro clínico é responsabilidade do veterinário: o tutor
+                // acompanha o histórico, mas não o cria nem o altera.
+                .requestMatchers(HttpMethod.POST,   "/api/vacinas/**").hasRole("DOUTOR")
+                .requestMatchers(HttpMethod.PUT,    "/api/vacinas/**").hasRole("DOUTOR")
+                .requestMatchers(HttpMethod.DELETE, "/api/vacinas/**").hasRole("DOUTOR")
+                .requestMatchers(HttpMethod.POST,   "/api/consultas/**").hasRole("DOUTOR")
+                .requestMatchers(HttpMethod.PUT,    "/api/consultas/**").hasRole("DOUTOR")
+                .requestMatchers(HttpMethod.DELETE, "/api/consultas/**").hasRole("DOUTOR")
+
                 // --- acessíveis aos dois perfis autenticados ------------
                 .requestMatchers("/api/pets/**", "/api/vacinas/**",
                                  "/api/consultas/**", "/api/historico-pontuacao/**")

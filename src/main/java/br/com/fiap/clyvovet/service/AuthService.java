@@ -58,6 +58,7 @@ public class AuthService {
         }
 
         Usuario usuario = usuarioRepository.save(Usuario.builder()
+                .nome(request.nome())
                 .email(request.email())
                 .senha(passwordEncoder.encode(request.senha()))
                 .role(request.role())
@@ -79,9 +80,13 @@ public class AuthService {
         Usuario usuario = usuarioRepository.findByEmail(request.email())
                 .orElseThrow(() -> new BusinessException("E-mail ou senha inválidos"));
 
-        String nome = usuario.getTutor() != null
-                ? usuario.getTutor().getNome()
-                : usuario.getEmail();
+        // Nome de exibição: o do cadastro do usuário, caindo para o do tutor
+        // vinculado e, por último, para o próprio e-mail.
+        String nome = usuario.getNome() != null
+                ? usuario.getNome()
+                : usuario.getTutor() != null
+                    ? usuario.getTutor().getNome()
+                    : usuario.getEmail();
 
         return montarResposta(usuario, nome);
     }

@@ -55,6 +55,7 @@ public class SeedUsuariosConfig implements CommandLineRunner {
                         .build()));
 
         usuarioRepository.save(Usuario.builder()
+                .nome(tutor.getNome())
                 .email(EMAIL_TUTOR)
                 .senha(passwordEncoder.encode(SENHA_DEMO))
                 .role(Role.TUTOR)
@@ -70,6 +71,7 @@ public class SeedUsuariosConfig implements CommandLineRunner {
         }
 
         usuarioRepository.save(Usuario.builder()
+                .nome("Dra. Helena Prado")
                 .email(EMAIL_DOUTOR)
                 .senha(passwordEncoder.encode(SENHA_DEMO))
                 .role(Role.DOUTOR)
