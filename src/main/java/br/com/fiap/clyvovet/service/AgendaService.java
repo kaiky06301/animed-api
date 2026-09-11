@@ -199,6 +199,37 @@ public class AgendaService {
     }
 
     /**
+     * Detalhe de um atendimento.
+     *
+     * Reúne o que está na consulta com o que é da clínica — onde é, quanto
+     * dura e como preparar o pet —, para que o tutor não precise procurar
+     * essas informações em outro lugar. As orientações de preparo só
+     * acompanham atendimentos que ainda vão acontecer.
+     */
+    public AgendaDTO.DetalheAtendimento detalhe(Long idConsulta) {
+        Consulta consulta = consultaRepository.findById(idConsulta)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Atendimento não encontrado: " + idConsulta));
+
+        boolean porVir = consulta.getStatus() == StatusConsulta.AGENDADA;
+
+        return new AgendaDTO.DetalheAtendimento(
+                consulta.getId(),
+                consulta.getDataHora(),
+                consulta.getMotivo(),
+                consulta.getStatus().name(),
+                consulta.getVeterinario(),
+                CLINICA,
+                ENDERECO,
+                MINUTOS_POR_ATENDIMENTO,
+                consulta.getPet().getId(),
+                consulta.getPet().getNome(),
+                consulta.getDiagnostico(),
+                consulta.getPrescricao(),
+                porVir ? ORIENTACOES : List.of());
+    }
+
+    /**
      * Conclui um atendimento da agenda.
      *
      * É o que fecha o ciclo do cuidado: o veterinário confirma que o pet foi
