@@ -59,6 +59,15 @@ public class AgendaController {
     }
 
     @Operation(
+            summary = "Cancela um atendimento",
+            description = "Libera o horário e estorna os pontos ganhos ao marcá-lo."
+    )
+    @PatchMapping("/atendimentos/{id}/cancelar")
+    public ResponseEntity<AgendaDTO.AtendimentoCancelado> cancelar(@PathVariable Long id) {
+        return ResponseEntity.ok(agendaService.cancelar(id));
+    }
+
+    @Operation(
             summary = "Conclui um atendimento",
             description = "Marca o atendimento como realizado, credita os pontos ao tutor "
                     + "e, se o veterinário indicar, já reserva o retorno."

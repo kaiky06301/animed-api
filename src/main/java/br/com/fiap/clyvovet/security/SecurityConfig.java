@@ -66,8 +66,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT,    "/api/consultas/**").hasRole("DOUTOR")
                 .requestMatchers(HttpMethod.DELETE, "/api/consultas/**").hasRole("DOUTOR")
 
-                // Concluir o atendimento é ato do profissional que atendeu.
-                .requestMatchers(HttpMethod.PATCH, "/api/agenda/atendimentos/**")
+                // Concluir o atendimento é ato do profissional que atendeu;
+                // cancelar é do tutor, e por isso fica fora desta regra.
+                .requestMatchers(HttpMethod.PATCH, "/api/agenda/atendimentos/*/concluir")
                     .hasRole("DOUTOR")
 
                 // --- acessíveis aos dois perfis autenticados ------------

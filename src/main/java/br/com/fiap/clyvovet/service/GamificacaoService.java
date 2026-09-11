@@ -46,6 +46,38 @@ public class GamificacaoService {
     }
 
     /**
+     * Desfaz o crédito de uma ação que deixou de valer.
+     *
+     * O histórico guarda o estorno como lançamento negativo, em vez de
+     * apagar o registro original: o tutor consegue ver o que aconteceu com
+     * a pontuação dele.
+     */
+    @Transactional
+    @CacheEvict(value = "tutores", allEntries = true)
+    public void estornarAcao(Long idTutor, TipoAcaoPontuacao tipoAcao, String descricao) {
+        estornarAcao(idTutor, tipoAcao, tipoAcao.getPontosPadrao(), descricao);
+    }
+
+    /** Estorno com valor próprio, quando a regra cobra mais do que foi creditado. */
+    @Transactional
+    @CacheEvict(value = "tutores", allEntries = true)
+    public void estornarAcao(Long idTutor, TipoAcaoPontuacao tipoAcao, int pontos,
+                             String descricao) {
+        Tutor tutor = tutorRepository.findById(idTutor)
+                .orElseThrow(() -> new ResourceNotFoundException("Tutor", idTutor));
+
+        tutor.estornarPontos(pontos);
+        tutorRepository.save(tutor);
+
+        historicoRepository.save(HistoricoPontuacao.builder()
+                .tutor(tutor)
+                .tipoAcao(tipoAcao)
+                .pontosGanhos(-pontos)
+                .descricao(descricao)
+                .build());
+    }
+
+    /**
      * Versão com pontos customizados (ex: missões com peso variável).
      */
     @Transactional

@@ -87,6 +87,14 @@ public class AgendaDTO {
             String orientacao
     ) {}
 
+    /** Resultado do cancelamento, com o que saiu da pontuação. */
+    public record AtendimentoCancelado(
+            Long idConsulta,
+            LocalDateTime dataHora,
+            String motivo,
+            int pontosEstornados
+    ) {}
+
     /** O dia inteiro como o veterinário o enxerga. */
     public record AgendaDoDia(
             LocalDate data,
