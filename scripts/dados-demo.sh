@@ -184,10 +184,29 @@ prescrever "{
 }" > /dev/null
 echo "==> Antipulgas prescrito à Mel (mensal)"
 
-# Uma dose já dada, para o app abrir com o próximo horário calculado
-curl -s -o /dev/null -X POST "$API/api/medicamentos/$ID_AMOXI/doses" \
-  -H "Authorization: Bearer $TOKEN_TUTOR" \
-  -H 'Content-Type: application/json' -d '{}'
+ID_CARDIO=$(prescrever "{
+  \"idPet\":$ID_THOR,
+  \"nome\":\"Vetmedin 5mg (coração)\",
+  \"dosagem\":\"1 comprimido\",
+  \"intervaloHoras\":12,
+  \"dataInicio\":\"$INICIO_ANTIGO\",
+  \"observacao\":\"Dar uma hora antes da refeição\"
+}")
+
+# A dose deste foi dada ontem à noite: o card abre em atraso.
+ONTEM_20H="$(date -v-1d +%F 2>/dev/null || date -d '-1 day' +%F)T20:00:00"
+
+registrar_dose() {
+  curl -s -o /dev/null -X POST "$API/api/medicamentos/$1/doses" \
+    -H "Authorization: Bearer $TOKEN_TUTOR" \
+    -H 'Content-Type: application/json' -d "$2"
+}
+
+registrar_dose "$ID_CARDIO" "{\"dataHora\":\"$ONTEM_20H\"}"
+echo "==> Vetmedin do Thor com a última dose ontem às 20h (aparece em atraso)"
+
+# A amoxicilina teve a primeira dose agora: o card mostra o próximo horário
+registrar_dose "$ID_AMOXI" '{}'
 echo "==> Primeira dose da amoxicilina registrada pelo tutor"
 
 echo
