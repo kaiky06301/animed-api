@@ -38,6 +38,14 @@ public class MedicamentoDTO {
 
     /** Registro de uma dose dada pelo tutor. */
     public record DoseRequest(
+            /**
+             * Quando a dose foi dada. Ausente significa agora — é o caso
+             * comum; informar serve para quem deu o remédio e só registrou
+             * depois.
+             */
+            @PastOrPresent(message = "A dose não pode ser registrada para o futuro")
+            LocalDateTime dataHora,
+
             @Size(max = 250)
             String observacao
     ) {}

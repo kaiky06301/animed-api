@@ -128,7 +128,14 @@ public class MedicamentoService {
     public MedicamentoDTO.DoseRegistrada registrarDose(Long idMedicamento,
                                                        MedicamentoDTO.DoseRequest request) {
         Medicamento medicamento = buscarEntidade(idMedicamento);
-        LocalDateTime agora = LocalDateTime.now();
+
+        LocalDateTime agora = request == null || request.dataHora() == null
+                ? LocalDateTime.now()
+                : request.dataHora();
+
+        if (agora.toLocalDate().isBefore(medicamento.getDataInicio())) {
+            throw new BusinessException("O tratamento começou depois dessa data");
+        }
 
         if (!medicamento.estaEmCurso(agora.toLocalDate())) {
             throw new BusinessException(medicamento.getDataFim() != null
