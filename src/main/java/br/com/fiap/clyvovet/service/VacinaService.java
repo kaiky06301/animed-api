@@ -4,6 +4,7 @@ import br.com.fiap.clyvovet.dto.VacinaDTO;
 import br.com.fiap.clyvovet.entity.Pet;
 import br.com.fiap.clyvovet.entity.Vacina;
 import br.com.fiap.clyvovet.enums.TipoAcaoPontuacao;
+import br.com.fiap.clyvovet.exception.BusinessException;
 import br.com.fiap.clyvovet.exception.ResourceNotFoundException;
 import br.com.fiap.clyvovet.repository.VacinaRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,8 @@ public class VacinaService {
     public VacinaDTO.Response criar(VacinaDTO.Request request) {
         Pet pet = petService.buscarEntidade(request.idPet());
 
+        validarDatas(request);
+
         Vacina vacina = Vacina.builder()
                 .nomeVacina(request.nomeVacina())
                 .dataAplicacao(request.dataAplicacao())
@@ -49,6 +52,18 @@ public class VacinaService {
         );
 
         return toResponse(salva);
+    }
+
+    /**
+     * A próxima dose pode estar no passado (histórico retroativo), mas nunca
+     * antes da aplicação que a originou.
+     */
+    private void validarDatas(VacinaDTO.Request request) {
+        if (request.dataProximaDose() != null
+                && !request.dataProximaDose().isAfter(request.dataAplicacao())) {
+            throw new BusinessException(
+                    "A próxima dose deve ser posterior à data de aplicação");
+        }
     }
 
     public VacinaDTO.Response buscarPorId(Long id) {
@@ -75,6 +90,8 @@ public class VacinaService {
     @Transactional
     public VacinaDTO.Response atualizar(Long id, VacinaDTO.Request request) {
         Vacina vacina = buscarEntidade(id);
+
+        validarDatas(request);
 
         vacina.setNomeVacina(request.nomeVacina());
         vacina.setDataAplicacao(request.dataAplicacao());

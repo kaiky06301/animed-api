@@ -15,7 +15,9 @@ public class VacinaDTO {
             @PastOrPresent(message = "Data de aplicação não pode ser futura")
             LocalDate dataAplicacao,
 
-            @Future(message = "Próxima dose deve ser no futuro")
+            // Sem exigência de data futura: o veterinário também registra
+            // histórico retroativo, cujo reforço pode já estar vencido.
+            // A coerência com a data de aplicação é validada no serviço.
             LocalDate dataProximaDose,
 
             @Size(max = 120)
