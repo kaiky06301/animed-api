@@ -127,6 +127,69 @@ registrar_vacina "{
 }"
 echo
 
+# --- Medicamentos -----------------------------------------------------------
+# Quem prescreve é o veterinário; ao tutor cabe registrar as doses dadas.
+prescrever() {
+  curl -s -X POST "$API/api/medicamentos" \
+    -H "Authorization: Bearer $TOKEN_DOUTOR" \
+    -H 'Content-Type: application/json' \
+    -d "$1" | python3 -c 'import sys,json;print(json.load(sys.stdin)["id"])'
+}
+
+HOJE=$(date +%F)
+FIM_ANTIBIOTICO=$(date -v+6d +%F 2>/dev/null || date -d "+6 days" +%F)
+INICIO_ANTIGO=$(date -v-20d +%F 2>/dev/null || date -d "-20 days" +%F)
+FIM_ANTIGO=$(date -v-13d +%F 2>/dev/null || date -d "-13 days" +%F)
+
+echo
+ID_AMOXI=$(prescrever "{
+  \"idPet\":$ID_THOR,
+  \"nome\":\"Amoxicilina 250mg\",
+  \"dosagem\":\"1 comprimido\",
+  \"intervaloHoras\":12,
+  \"dataInicio\":\"$HOJE\",
+  \"dataFim\":\"$FIM_ANTIBIOTICO\",
+  \"observacao\":\"Dar junto com a comida, sem partir o comprimido\"
+}")
+echo "==> Amoxicilina prescrita ao Thor (12/12h por 7 dias)"
+
+prescrever "{
+  \"idPet\":$ID_THOR,
+  \"nome\":\"Vermífugo (Drontal Plus)\",
+  \"dosagem\":\"1 comprimido\",
+  \"intervaloHoras\":2160,
+  \"dataInicio\":\"$HOJE\",
+  \"observacao\":\"Repetir a cada três meses, mesmo sem sinal de verme\"
+}" > /dev/null
+echo "==> Vermífugo prescrito ao Thor (a cada 3 meses)"
+
+prescrever "{
+  \"idPet\":$ID_THOR,
+  \"nome\":\"Anti-inflamatório (terminado)\",
+  \"dosagem\":\"meio comprimido\",
+  \"intervaloHoras\":24,
+  \"dataInicio\":\"$INICIO_ANTIGO\",
+  \"dataFim\":\"$FIM_ANTIGO\",
+  \"observacao\":\"Displasia: usar apenas em crise de dor\"
+}" > /dev/null
+echo "==> Anti-inflamatório do Thor já venceu, aguardando o tutor confirmar"
+
+prescrever "{
+  \"idPet\":$ID_MEL,
+  \"nome\":\"Antipulgas (Bravecto)\",
+  \"dosagem\":\"1 pipeta\",
+  \"intervaloHoras\":720,
+  \"dataInicio\":\"$HOJE\",
+  \"observacao\":\"Aplicar na nuca, com o pelo separado\"
+}" > /dev/null
+echo "==> Antipulgas prescrito à Mel (mensal)"
+
+# Uma dose já dada, para o app abrir com o próximo horário calculado
+curl -s -o /dev/null -X POST "$API/api/medicamentos/$ID_AMOXI/doses" \
+  -H "Authorization: Bearer $TOKEN_TUTOR" \
+  -H 'Content-Type: application/json' -d '{}'
+echo "==> Primeira dose da amoxicilina registrada pelo tutor"
+
 echo
 echo "==> Situação do tutor:"
 curl -s "$API/api/tutores/$ID_TUTOR" -H "Authorization: Bearer $TOKEN_TUTOR" |
