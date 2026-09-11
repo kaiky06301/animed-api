@@ -64,6 +64,15 @@ public class MedicamentoDTO {
             /** true quando já passou a hora da próxima dose. */
             boolean doseLiberada,
 
+            /** Minutos passados desde a hora prevista; zero quando não há atraso. */
+            long minutosDeAtraso,
+
+            /**
+             * O atraso passou de um intervalo inteiro: a dose foi pulada, e o
+             * horário do tratamento se reajusta a partir da próxima tomada.
+             */
+            boolean dosePerdida,
+
             /** Os dias da receita acabaram e o tutor ainda não confirmou. */
             boolean aguardandoConfirmacao,
 
@@ -78,6 +87,9 @@ public class MedicamentoDTO {
             String medicamento,
             int pontosGanhos,
             int pontosTotais,
-            LocalDateTime proximaDose
+            LocalDateTime proximaDose,
+
+            /** Por que a dose não pontuou, quando for o caso. */
+            String aviso
     ) {}
 }

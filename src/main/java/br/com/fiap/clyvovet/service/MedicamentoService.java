@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -137,8 +138,16 @@ public class MedicamentoService {
         }
 
         LocalDateTime liberadaEm = proximaDosePermitida(medicamento);
-        boolean noHorario = liberadaEm == null
-                || !agora.isBefore(liberadaEm.minusMinutes(MINUTOS_DE_TOLERANCIA));
+
+        boolean adiantada = liberadaEm != null
+                && agora.isBefore(liberadaEm.minusMinutes(MINUTOS_DE_TOLERANCIA));
+
+        // Atraso maior que um intervalo inteiro significa dose pulada: o
+        // tratamento recomeça a contar de agora, e essa tomada não pontua.
+        boolean dosePerdida = liberadaEm != null
+                && agora.isAfter(liberadaEm.plusHours(medicamento.getIntervaloHoras()));
+
+        boolean noHorario = !adiantada && !dosePerdida;
 
         DoseMedicamento dose = doseRepository.save(DoseMedicamento.builder()
                 .medicamento(medicamento)
@@ -160,13 +169,20 @@ public class MedicamentoService {
         int pontosTotais = tutorRepository.findById(medicamento.getPet().getTutor().getId())
                 .map(t -> t.getPontosTotais()).orElse(0);
 
+        String aviso = noHorario ? null
+                : adiantada
+                    ? "Dose adiantada: a receita pedia a próxima às "
+                            + liberadaEm.toLocalTime().withSecond(0).withNano(0)
+                    : "Você pulou uma dose. O horário do tratamento recomeça agora";
+
         return new MedicamentoDTO.DoseRegistrada(
                 dose.getId(),
                 dose.getDataHora(),
                 medicamento.getNome(),
                 pontos,
                 pontosTotais,
-                agora.plusHours(medicamento.getIntervaloHoras()));
+                agora.plusHours(medicamento.getIntervaloHoras()),
+                aviso);
     }
 
     @Transactional
@@ -208,6 +224,10 @@ public class MedicamentoService {
         LocalDateTime proxima = ultima == null ? null : ultima.plusHours(m.getIntervaloHoras());
         boolean emCurso = m.estaEmCurso(LocalDate.now());
 
+        long atraso = proxima == null || !LocalDateTime.now().isAfter(proxima)
+                ? 0
+                : Duration.between(proxima, LocalDateTime.now()).toMinutes();
+
         return new MedicamentoDTO.Response(
                 m.getId(),
                 m.getNome(),
@@ -227,6 +247,9 @@ public class MedicamentoService {
                 emCurso && (proxima == null
                         || !LocalDateTime.now().isBefore(
                                 proxima.minusMinutes(MINUTOS_DE_TOLERANCIA))),
+                atraso,
+                proxima != null && LocalDateTime.now()
+                        .isAfter(proxima.plusHours(m.getIntervaloHoras())),
                 m.aguardandoConfirmacao(LocalDate.now()),
                 m.getDataConfirmacaoFim());
     }
