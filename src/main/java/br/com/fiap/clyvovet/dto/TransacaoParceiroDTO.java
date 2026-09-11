@@ -19,7 +19,11 @@ public class TransacaoParceiroDTO {
             Long idTutor,
 
             @NotNull(message = "ID do pet shop é obrigatório")
-            Long idPetShop
+            Long idPetShop,
+
+            /** Moedas que o tutor quer usar para abater o valor. */
+            @Min(value = 0, message = "Moedas não pode ser negativo")
+            Integer moedasUsadas
     ) {}
 
     public record Response(
@@ -29,6 +33,8 @@ public class TransacaoParceiroDTO {
             BigDecimal descontoAplicado,
             BigDecimal valorFinal,
             BigDecimal comissaoClyvo,
+            Integer moedasUsadas,
+            BigDecimal abatimentoMoedas,
             Integer pontosGerados,
             String descricaoProduto,
             Long idTutor,

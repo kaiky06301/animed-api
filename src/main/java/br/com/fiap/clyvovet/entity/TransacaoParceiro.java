@@ -42,6 +42,15 @@ public class TransacaoParceiro {
     @Column(name = "COMISSAO_CLYVO", nullable = false, precision = 10, scale = 2)
     private BigDecimal comissaoClyvo;
 
+    /** Moedas que o tutor gastou para abater o valor. */
+    @Column(name = "MOEDAS_USADAS", nullable = false)
+    @Builder.Default
+    private Integer moedasUsadas = 0;
+
+    @Column(name = "ABATIMENTO_MOEDAS", nullable = false, precision = 10, scale = 2)
+    @Builder.Default
+    private BigDecimal abatimentoMoedas = BigDecimal.ZERO;
+
     @Column(name = "PONTOS_GERADOS", nullable = false)
     private Integer pontosGerados;
 
@@ -62,7 +71,11 @@ public class TransacaoParceiro {
     @PrePersist
     public void calcularValores() {
         if (this.descontoAplicado == null) this.descontoAplicado = BigDecimal.ZERO;
-        this.valorFinal = this.valorBruto.subtract(this.descontoAplicado);
+        if (this.abatimentoMoedas == null) this.abatimentoMoedas = BigDecimal.ZERO;
+
+        this.valorFinal = this.valorBruto
+                .subtract(this.descontoAplicado)
+                .subtract(this.abatimentoMoedas);
         if (this.petShop != null) {
             this.comissaoClyvo = this.valorFinal
                     .multiply(this.petShop.getComissaoPercentual())
