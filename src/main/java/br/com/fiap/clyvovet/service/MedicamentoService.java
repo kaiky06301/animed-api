@@ -34,8 +34,13 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class MedicamentoService {
 
-    /** Tolerância para o tutor que dá o remédio um pouco antes da hora. */
-    private static final int MINUTOS_DE_TOLERANCIA = 30;
+    /**
+     * Tolerância para o tutor que dá o remédio um pouco antes da hora.
+     *
+     * Ninguém acerta o minuto exato: vinte minutos de folga evitam punir
+     * quem está cumprindo a receita direito.
+     */
+    private static final int MINUTOS_DE_TOLERANCIA = 20;
 
     private final MedicamentoRepository medicamentoRepository;
     private final DoseMedicamentoRepository doseRepository;
