@@ -21,7 +21,6 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Stream;
 
 /**
  * Agenda de atendimentos da clínica.
@@ -54,39 +53,6 @@ public class AgendaService {
     /** Onde o atendimento acontece. */
     private static final String CLINICA = "Clínica Veterinária Animed";
     private static final String ENDERECO = "Av. Paulista, 1000 - São Paulo/SP";
-
-    /** Vale para qualquer atendimento. */
-    private static final List<String> ORIENTACOES_COMUNS = List.of(
-            "Leve a carteira de vacinação e exames anteriores",
-            "Traga o pet na caixa de transporte ou com guia e coleira",
-            "Chegue com 10 minutos de antecedência"
-    );
-
-    /**
-     * O check-up costuma incluir coleta de sangue, e é a coleta que pede
-     * jejum - não a consulta em si. Por isso o aviso vem condicionado.
-     */
-    private static final List<String> ORIENTACOES_CHECKUP = List.of(
-            "Se houver coleta de sangue, o pet precisa de 8 a 12 horas de jejum "
-                    + "- confirme com a clínica ao marcar",
-            "Não suspenda a água em nenhuma hipótese"
-    );
-
-    /**
-     * Diante de um sintoma, jejum por conta própria pode piorar o quadro de
-     * um animal já debilitado. O que ajuda a consulta é a informação.
-     */
-    private static final List<String> ORIENTACOES_SINTOMA = List.of(
-            "Não faça jejum sem orientação do veterinário",
-            "Anote desde quando o sintoma aparece e o que mudou na rotina",
-            "Se houve vômito ou diarreia, leve uma amostra recente"
-    );
-
-    /** No retorno, o que importa é a evolução desde o último atendimento. */
-    private static final List<String> ORIENTACOES_RETORNO = List.of(
-            "Leve os exames e a receita do atendimento anterior",
-            "Anote como o pet respondeu ao tratamento"
-    );
 
     private final ConsultaRepository consultaRepository;
     private final UsuarioRepository usuarioRepository;
@@ -191,25 +157,6 @@ public class AgendaService {
         }
     }
 
-    /**
-     * Preparo do pet conforme o motivo do atendimento.
-     *
-     * Orientação genérica é pior que orientação nenhuma: pedir jejum para
-     * quem vai a uma consulta de rotina é desnecessário, e pedir a quem
-     * leva um animal com sintoma pode agravar o quadro.
-     */
-    private List<String> orientacoesPara(String motivo) {
-        String texto = motivo == null ? "" : motivo.toLowerCase();
-
-        List<String> especificas =
-                texto.startsWith("retorno") ? ORIENTACOES_RETORNO
-                : texto.contains("sintoma") ? ORIENTACOES_SINTOMA
-                : texto.contains("check-up") ? ORIENTACOES_CHECKUP
-                : List.of();
-
-        return Stream.concat(especificas.stream(), ORIENTACOES_COMUNS.stream()).toList();
-    }
-
     private AgendaDTO.Disponibilidade indisponivel(LocalDate data, Usuario veterinario,
                                                    String motivo) {
         return new AgendaDTO.Disponibilidade(data, false, veterinario.getNome(), motivo,
@@ -272,7 +219,7 @@ public class AgendaService {
                 consulta.getPet().getNome(),
                 consulta.getDiagnostico(),
                 consulta.getPrescricao(),
-                porVir ? orientacoesPara(consulta.getMotivo()) : List.of());
+                consulta.getOrientacao());
     }
 
     /**
@@ -310,7 +257,7 @@ public class AgendaService {
         LocalDateTime retorno = conclusao == null ? null : conclusao.retorno();
 
         if (retorno != null) {
-            marcarRetorno(consulta, retorno);
+            marcarRetorno(consulta, retorno, conclusao.orientacao());
         }
 
         AgendaDTO.Atendimento atendimento = new AgendaDTO.Atendimento(
@@ -333,7 +280,7 @@ public class AgendaService {
      * feito pelo tutor — a agenda é uma só. O retorno não pontua: quem o
      * marcou foi o profissional, não o tutor.
      */
-    private void marcarRetorno(Consulta origem, LocalDateTime quando) {
+    private void marcarRetorno(Consulta origem, LocalDateTime quando, String orientacao) {
         AgendaDTO.Disponibilidade disponivel = disponibilidade(quando.toLocalDate());
         String horario = quando.toLocalTime().toString();
 
@@ -350,6 +297,7 @@ public class AgendaService {
         consultaRepository.save(Consulta.builder()
                 .dataHora(quando)
                 .motivo("Retorno - " + origem.getMotivo())
+                .orientacao(orientacao)
                 .status(StatusConsulta.AGENDADA)
                 .veterinario(veterinario.getNome())
                 .veterinarioResponsavel(veterinario)
@@ -394,8 +342,7 @@ public class AgendaService {
                 consulta.getDataHora(),
                 consulta.getMotivo(),
                 consulta.getVeterinario(),
-                TipoAcaoPontuacao.AGENDAMENTO_CONSULTA.getPontosPadrao(),
-                orientacoesPara(consulta.getMotivo())
+                TipoAcaoPontuacao.AGENDAMENTO_CONSULTA.getPontosPadrao()
         );
     }
 }

@@ -45,6 +45,10 @@ public class Consulta {
     @Builder.Default
     private StatusConsulta status = StatusConsulta.AGENDADA;
 
+    /** Instrução escrita pelo veterinário ao tutor, quando há. */
+    @Column(name = "ORIENTACAO", length = 500)
+    private String orientacao;
+
     @Column(name = "VETERINARIO", length = 120)
     private String veterinario;
 
