@@ -1,5 +1,6 @@
 package br.com.fiap.clyvovet.dto;
 
+import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -15,6 +16,7 @@ public class AgendaDTO {
     public record Disponibilidade(
             LocalDate data,
             boolean atende,
+            String veterinario,
             String observacao,
             List<String> horarios,
             int duracaoMinutos,
@@ -34,6 +36,42 @@ public class AgendaDTO {
             int ano,
             int mes,
             List<DiaDoMes> dias
+    ) {}
+
+    /** Um horário já reservado na agenda do veterinário. */
+    public record Atendimento(
+            Long idConsulta,
+            String horario,
+            Long idPet,
+            String nomePet,
+            String nomeTutor,
+            String motivo,
+            String status
+    ) {}
+
+    /**
+     * Fechamento do atendimento.
+     *
+     * O retorno é decisão clínica: só o veterinário diz se haverá e quando.
+     */
+    public record Conclusao(
+            @Future(message = "O retorno deve ser marcado para uma data futura")
+            LocalDateTime retorno
+    ) {}
+
+    /** Resultado do fechamento: o atendimento e o retorno, quando houver. */
+    public record AtendimentoConcluido(
+            Atendimento atendimento,
+            LocalDateTime retorno,
+            int pontosCreditados
+    ) {}
+
+    /** O dia inteiro como o veterinário o enxerga. */
+    public record AgendaDoDia(
+            LocalDate data,
+            String veterinario,
+            int horariosLivres,
+            List<Atendimento> atendimentos
     ) {}
 
     public record Agendamento(
