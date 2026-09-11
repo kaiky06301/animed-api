@@ -56,7 +56,11 @@ public class AgendaDTO {
      */
     public record Conclusao(
             @Future(message = "O retorno deve ser marcado para uma data futura")
-            LocalDateTime retorno
+            LocalDateTime retorno,
+
+            /** Instrução que o tutor deve seguir até o retorno. */
+            @Size(max = 500)
+            String orientacao
     ) {}
 
     /** Resultado do fechamento: o atendimento e o retorno, quando houver. */
@@ -80,7 +84,7 @@ public class AgendaDTO {
             String nomePet,
             String diagnostico,
             String prescricao,
-            List<String> orientacoes
+            String orientacao
     ) {}
 
     /** O dia inteiro como o veterinário o enxerga. */
@@ -109,7 +113,6 @@ public class AgendaDTO {
             LocalDateTime dataHora,
             String motivo,
             String veterinario,
-            int pontosGanhos,
-            List<String> orientacoes
+            int pontosGanhos
     ) {}
 }
