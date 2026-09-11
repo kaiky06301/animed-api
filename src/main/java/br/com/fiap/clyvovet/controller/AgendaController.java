@@ -30,6 +30,16 @@ public class AgendaController {
     }
 
     @Operation(
+            summary = "Calendário do mês",
+            description = "Marca quais dias do mês ainda têm horário livre para atendimento."
+    )
+    @GetMapping("/disponibilidade/mes")
+    public ResponseEntity<AgendaDTO.MesDisponivel> mes(
+            @RequestParam int ano, @RequestParam int mes) {
+        return ResponseEntity.ok(agendaService.mes(ano, mes));
+    }
+
+    @Operation(
             summary = "Agenda um atendimento",
             description = "Marca o horário escolhido pelo tutor e credita os pontos do agendamento."
     )
