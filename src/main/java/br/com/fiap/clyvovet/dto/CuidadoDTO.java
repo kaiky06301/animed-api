@@ -32,6 +32,9 @@ public class CuidadoDTO {
             String descricao,
             int pontosGanhos,
             int pontosTotais,
-            int moedas
+            int moedas,
+
+            /** Explica por que a ação não rendeu pontos, quando for o caso. */
+            String aviso
     ) {}
 }
