@@ -50,6 +50,15 @@ public class AgendaService {
     /** Antecedência mínima para marcar um horário. */
     private static final int HORAS_DE_ANTECEDENCIA = 2;
 
+    /**
+     * Custo de desmarcar.
+     *
+     * É maior que os 10 pontos ganhos ao reservar: o horário perdido faz
+     * falta à clínica e a outro tutor que poderia tê-lo usado, então
+     * desmarcar precisa pesar mais do que marcar.
+     */
+    private static final int PONTOS_POR_CANCELAMENTO = 30;
+
     /** Onde o atendimento acontece. */
     private static final String CLINICA = "Clínica Veterinária Animed";
     private static final String ENDERECO = "Av. Paulista, 1000 - São Paulo/SP";
@@ -220,6 +229,48 @@ public class AgendaService {
                 consulta.getDiagnostico(),
                 consulta.getPrescricao(),
                 consulta.getOrientacao());
+    }
+
+    /**
+     * Cancela um atendimento marcado.
+     *
+     * Os pontos ganhos ao reservar o horário voltam atrás: o compromisso
+     * não vai acontecer, e manter o crédito permitiria marcar e desmarcar
+     * indefinidamente só para pontuar. O horário volta a ficar disponível
+     * para outros pacientes.
+     */
+    @Transactional
+    public AgendaDTO.AtendimentoCancelado cancelar(Long idConsulta) {
+        Consulta consulta = consultaRepository.findById(idConsulta)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Atendimento não encontrado: " + idConsulta));
+
+        if (consulta.getStatus() == StatusConsulta.REALIZADA) {
+            throw new BusinessException("Este atendimento já foi realizado");
+        }
+
+        if (consulta.getStatus() == StatusConsulta.CANCELADA) {
+            throw new BusinessException("Este atendimento já está cancelado");
+        }
+
+        if (consulta.getDataHora().isBefore(LocalDateTime.now())) {
+            throw new BusinessException(
+                    "O horário já passou. Fale com a clínica para regularizar o atendimento");
+        }
+
+        consulta.setStatus(StatusConsulta.CANCELADA);
+
+        gamificacaoService.estornarAcao(
+                consulta.getPet().getTutor().getId(),
+                TipoAcaoPontuacao.AGENDAMENTO_CONSULTA,
+                PONTOS_POR_CANCELAMENTO,
+                "Cancelamento: " + consulta.getMotivo() + " - " + consulta.getPet().getNome());
+
+        return new AgendaDTO.AtendimentoCancelado(
+                consulta.getId(),
+                consulta.getDataHora(),
+                consulta.getMotivo(),
+                PONTOS_POR_CANCELAMENTO);
     }
 
     /**

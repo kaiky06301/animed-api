@@ -90,6 +90,18 @@ public class Tutor {
         this.nivel = NivelGamificacao.fromPontos(this.pontosTotais);
     }
 
+    /**
+     * Devolve pontos creditados por uma ação desfeita.
+     *
+     * O saldo nunca fica negativo: um tutor que já gastou as moedas não
+     * passa a dever nada à plataforma por cancelar um compromisso.
+     */
+    public void estornarPontos(int pontos) {
+        this.pontosTotais = Math.max(0, this.pontosTotais - pontos);
+        this.moedas = Math.max(0, this.moedas - pontos);
+        this.nivel = NivelGamificacao.fromPontos(this.pontosTotais);
+    }
+
     /** Indica se o tutor já pode gastar as moedas acumuladas. */
     public boolean podeGastarMoedas() {
         return this.nivel == NivelGamificacao.TUTOR_PREMIUM;
