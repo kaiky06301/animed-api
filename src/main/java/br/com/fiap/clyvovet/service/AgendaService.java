@@ -144,6 +144,26 @@ public class AgendaService {
         return new AgendaDTO.MesDisponivel(ano, mes, dias);
     }
 
+    /**
+     * Um pet por dia.
+     *
+     * Dois atendimentos do mesmo animal no mesmo dia não fazem sentido
+     * clínico e só ocupariam a agenda à toa. Pets diferentes, por outro
+     * lado, podem ser atendidos no mesmo dia sem qualquer restrição.
+     */
+    private void exigirDiaLivreParaOPet(Long idPet, String nomeDoPet, LocalDate data) {
+        boolean jaTemNoDia = consultaRepository
+                .findByPetIdAndDataHoraBetween(idPet,
+                        data.atStartOfDay(), data.atTime(LocalTime.MAX))
+                .stream()
+                .anyMatch(c -> c.getStatus() == StatusConsulta.AGENDADA);
+
+        if (jaTemNoDia) {
+            throw new BusinessException(
+                    nomeDoPet + " já tem um atendimento marcado neste dia");
+        }
+    }
+
     private AgendaDTO.Disponibilidade indisponivel(LocalDate data, Usuario veterinario,
                                                    String motivo) {
         return new AgendaDTO.Disponibilidade(data, false, veterinario.getNome(), motivo,
@@ -245,6 +265,9 @@ public class AgendaService {
                     "A agenda não tem esse horário livre para o retorno");
         }
 
+        exigirDiaLivreParaOPet(origem.getPet().getId(), origem.getPet().getNome(),
+                quando.toLocalDate());
+
         Usuario veterinario = veterinarioDaClinica();
 
         consultaRepository.save(Consulta.builder()
@@ -269,6 +292,8 @@ public class AgendaService {
         if (!disponivel.atende() || !disponivel.horarios().contains(horario)) {
             throw new BusinessException("Este horário não está mais disponível");
         }
+
+        exigirDiaLivreParaOPet(pet.getId(), pet.getNome(), data);
 
         Usuario veterinario = veterinarioDaClinica();
 
