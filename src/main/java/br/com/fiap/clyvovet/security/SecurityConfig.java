@@ -68,7 +68,8 @@ public class SecurityConfig {
 
                 // --- acessíveis aos dois perfis autenticados ------------
                 .requestMatchers("/api/pets/**", "/api/vacinas/**",
-                                 "/api/consultas/**", "/api/historico-pontuacao/**")
+                                 "/api/consultas/**", "/api/historico-pontuacao/**",
+                                 "/api/cuidados/**")
                     .hasAnyRole("TUTOR", "DOUTOR")
 
                 .anyRequest().authenticated()
