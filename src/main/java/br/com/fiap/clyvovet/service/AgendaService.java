@@ -181,11 +181,12 @@ public class AgendaService {
     public AgendaDTO.AgendaDoDia agendaDoDia(LocalDate data) {
         Usuario veterinario = veterinarioDaClinica();
 
+        // Os cancelados continuam na lista do veterinário: ele precisa saber
+        // que o horário abriu e que aquele paciente não virá.
         List<AgendaDTO.Atendimento> atendimentos = consultaRepository
                 .findAgendaDoVeterinario(veterinario.getId(),
                         data.atStartOfDay(), data.atTime(LocalTime.MAX))
                 .stream()
-                .filter(c -> c.getStatus() != StatusConsulta.CANCELADA)
                 .map(c -> new AgendaDTO.Atendimento(
                         c.getId(),
                         c.getDataHora().toLocalTime().toString(),
