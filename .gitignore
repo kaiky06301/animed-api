@@ -50,3 +50,4 @@ out/
 # ===== Logs / temp =====
 *.tmp
 logs/
+data/
