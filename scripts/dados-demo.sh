@@ -148,6 +148,20 @@ registrar_vacina "{
 }"
 echo
 
+VENCEU_SEMANA_PASSADA=$(date -v-8d +%F 2>/dev/null || date -d "-8 days" +%F)
+APLICADA_ANO_PASSADO=$(date -v-12m -v-8d +%F 2>/dev/null || date -d "-12 months -8 days" +%F)
+
+echo -n "==> Gripe canina no Thor (reforço vencido): "
+registrar_vacina "{
+  \"nomeVacina\":\"Gripe canina (tosse dos canis)\",
+  \"dataAplicacao\":\"$APLICADA_ANO_PASSADO\",
+  \"dataProximaDose\":\"$VENCEU_SEMANA_PASSADA\",
+  \"veterinarioResponsavel\":\"Dra. Helena Prado\",
+  \"lote\":\"LT-2025-655\",
+  \"idPet\":$ID_THOR
+}"
+echo
+
 echo -n "==> V3 na Mel: "
 registrar_vacina "{
   \"nomeVacina\":\"V3 (tríplice felina)\",
