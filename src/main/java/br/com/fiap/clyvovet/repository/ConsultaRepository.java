@@ -29,6 +29,11 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
 
     Page<Consulta> findByPetId(Long idPet, Pageable pageable);
 
+    /** Atendimentos de um pet dentro de um intervalo. */
+    List<Consulta> findByPetIdAndDataHoraBetween(Long idPet,
+                                                 LocalDateTime inicio,
+                                                 LocalDateTime fim);
+
     Page<Consulta> findByStatus(StatusConsulta status, Pageable pageable);
 
     @Query("SELECT c FROM Consulta c WHERE c.dataHora BETWEEN :inicio AND :fim")
