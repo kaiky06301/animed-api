@@ -3,10 +3,14 @@ package br.com.fiap.clyvovet.service;
 import br.com.fiap.clyvovet.dto.AgendaDTO;
 import br.com.fiap.clyvovet.entity.Consulta;
 import br.com.fiap.clyvovet.entity.Pet;
+import br.com.fiap.clyvovet.entity.Usuario;
+import br.com.fiap.clyvovet.enums.Role;
 import br.com.fiap.clyvovet.enums.StatusConsulta;
 import br.com.fiap.clyvovet.enums.TipoAcaoPontuacao;
 import br.com.fiap.clyvovet.exception.BusinessException;
+import br.com.fiap.clyvovet.exception.ResourceNotFoundException;
 import br.com.fiap.clyvovet.repository.ConsultaRepository;
+import br.com.fiap.clyvovet.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -58,20 +62,35 @@ public class AgendaService {
     );
 
     private final ConsultaRepository consultaRepository;
+    private final UsuarioRepository usuarioRepository;
     private final PetService petService;
     private final GamificacaoService gamificacaoService;
 
+    /**
+     * Veterinário dono da agenda.
+     *
+     * A clínica tem uma profissional responsável pelos atendimentos; é a agenda
+     * dela que o tutor enxerga e é nela que o horário é reservado.
+     */
+    public Usuario veterinarioDaClinica() {
+        return usuarioRepository.findFirstByRoleAndAtivoTrueOrderByIdAsc(Role.DOUTOR)
+                .orElseThrow(() -> new BusinessException(
+                        "Nenhum veterinário disponível para atendimento no momento"));
+    }
+
     public AgendaDTO.Disponibilidade disponibilidade(LocalDate data) {
+        Usuario veterinario = veterinarioDaClinica();
         DayOfWeek dia = data.getDayOfWeek();
 
         if (dia == DayOfWeek.SUNDAY) {
-            return indisponivel(data, "A clínica não atende aos domingos");
+            return indisponivel(data, veterinario, "A clínica não atende aos domingos");
         }
 
         LocalTime fechamento = dia == DayOfWeek.SATURDAY ? FECHAMENTO_SABADO : FECHAMENTO;
 
         List<LocalDateTime> ocupados = consultaRepository
-                .findByDataHoraBetween(data.atStartOfDay(), data.atTime(LocalTime.MAX))
+                .findAgendaDoVeterinario(veterinario.getId(),
+                        data.atStartOfDay(), data.atTime(LocalTime.MAX))
                 .stream()
                 .filter(c -> c.getStatus() != StatusConsulta.CANCELADA)
                 .map(Consulta::getDataHora)
@@ -102,8 +121,8 @@ public class AgendaService {
                 : dia == DayOfWeek.SATURDAY ? "Sábado: atendimento das 8h às 12h"
                     : "Atendimento das 8h às 18h, com intervalo entre 12h e 13h";
 
-        return new AgendaDTO.Disponibilidade(data, true, observacao, livres,
-                MINUTOS_POR_ATENDIMENTO, CLINICA, ENDERECO);
+        return new AgendaDTO.Disponibilidade(data, true, veterinario.getNome(), observacao,
+                livres, MINUTOS_POR_ATENDIMENTO, CLINICA, ENDERECO);
     }
 
     /**
@@ -125,9 +144,117 @@ public class AgendaService {
         return new AgendaDTO.MesDisponivel(ano, mes, dias);
     }
 
-    private AgendaDTO.Disponibilidade indisponivel(LocalDate data, String motivo) {
-        return new AgendaDTO.Disponibilidade(data, false, motivo, List.of(),
-                MINUTOS_POR_ATENDIMENTO, CLINICA, ENDERECO);
+    private AgendaDTO.Disponibilidade indisponivel(LocalDate data, Usuario veterinario,
+                                                   String motivo) {
+        return new AgendaDTO.Disponibilidade(data, false, veterinario.getNome(), motivo,
+                List.of(), MINUTOS_POR_ATENDIMENTO, CLINICA, ENDERECO);
+    }
+
+    /**
+     * Agenda do dia como o veterinário a enxerga.
+     *
+     * É a contrapartida da disponibilidade: o que sai da lista de horários
+     * livres do tutor aparece aqui como atendimento marcado.
+     */
+    public AgendaDTO.AgendaDoDia agendaDoDia(LocalDate data) {
+        Usuario veterinario = veterinarioDaClinica();
+
+        List<AgendaDTO.Atendimento> atendimentos = consultaRepository
+                .findAgendaDoVeterinario(veterinario.getId(),
+                        data.atStartOfDay(), data.atTime(LocalTime.MAX))
+                .stream()
+                .filter(c -> c.getStatus() != StatusConsulta.CANCELADA)
+                .map(c -> new AgendaDTO.Atendimento(
+                        c.getId(),
+                        c.getDataHora().toLocalTime().toString(),
+                        c.getPet().getId(),
+                        c.getPet().getNome(),
+                        c.getPet().getTutor().getNome(),
+                        c.getMotivo(),
+                        c.getStatus().name()))
+                .toList();
+
+        return new AgendaDTO.AgendaDoDia(data, veterinario.getNome(),
+                disponibilidade(data).horarios().size(), atendimentos);
+    }
+
+    /**
+     * Conclui um atendimento da agenda.
+     *
+     * É o que fecha o ciclo do cuidado: o veterinário confirma que o pet foi
+     * atendido e o tutor recebe os pontos prometidos no aplicativo.
+     */
+    @Transactional
+    public AgendaDTO.AtendimentoConcluido concluir(Long idConsulta,
+                                                   AgendaDTO.Conclusao conclusao) {
+        Consulta consulta = consultaRepository.findById(idConsulta)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Atendimento não encontrado: " + idConsulta));
+
+        if (consulta.getStatus() == StatusConsulta.REALIZADA) {
+            throw new BusinessException("Este atendimento já foi concluído");
+        }
+
+        if (consulta.getStatus() == StatusConsulta.CANCELADA) {
+            throw new BusinessException("Um atendimento cancelado não pode ser concluído");
+        }
+
+        consulta.setStatus(StatusConsulta.REALIZADA);
+
+        TipoAcaoPontuacao acao = consulta.getMotivo() != null
+                && consulta.getMotivo().toLowerCase().contains("check-up")
+                ? TipoAcaoPontuacao.CHECKUP_REALIZADO
+                : TipoAcaoPontuacao.REGISTRO_CONSULTA;
+
+        gamificacaoService.registrarAcao(
+                consulta.getPet().getTutor().getId(), acao,
+                consulta.getMotivo() + " - " + consulta.getPet().getNome());
+
+        LocalDateTime retorno = conclusao == null ? null : conclusao.retorno();
+
+        if (retorno != null) {
+            marcarRetorno(consulta, retorno);
+        }
+
+        AgendaDTO.Atendimento atendimento = new AgendaDTO.Atendimento(
+                consulta.getId(),
+                consulta.getDataHora().toLocalTime().toString(),
+                consulta.getPet().getId(),
+                consulta.getPet().getNome(),
+                consulta.getPet().getTutor().getNome(),
+                consulta.getMotivo(),
+                consulta.getStatus().name());
+
+        return new AgendaDTO.AtendimentoConcluido(atendimento, retorno,
+                acao.getPontosPadrao());
+    }
+
+    /**
+     * Reserva o retorno indicado pelo veterinário.
+     *
+     * O horário passa pela mesma checagem de disponibilidade do agendamento
+     * feito pelo tutor — a agenda é uma só. O retorno não pontua: quem o
+     * marcou foi o profissional, não o tutor.
+     */
+    private void marcarRetorno(Consulta origem, LocalDateTime quando) {
+        AgendaDTO.Disponibilidade disponivel = disponibilidade(quando.toLocalDate());
+        String horario = quando.toLocalTime().toString();
+
+        if (!disponivel.atende() || !disponivel.horarios().contains(horario)) {
+            throw new BusinessException(
+                    "A agenda não tem esse horário livre para o retorno");
+        }
+
+        Usuario veterinario = veterinarioDaClinica();
+
+        consultaRepository.save(Consulta.builder()
+                .dataHora(quando)
+                .motivo("Retorno - " + origem.getMotivo())
+                .status(StatusConsulta.AGENDADA)
+                .veterinario(veterinario.getNome())
+                .veterinarioResponsavel(veterinario)
+                .pet(origem.getPet())
+                .build());
     }
 
     @Transactional
@@ -143,11 +270,14 @@ public class AgendaService {
             throw new BusinessException("Este horário não está mais disponível");
         }
 
+        Usuario veterinario = veterinarioDaClinica();
+
         Consulta consulta = consultaRepository.save(Consulta.builder()
                 .dataHora(pedido.dataHora())
                 .motivo(pedido.motivo())
                 .status(StatusConsulta.AGENDADA)
-                .veterinario("Dra. Helena Prado")
+                .veterinario(veterinario.getNome())
+                .veterinarioResponsavel(veterinario)
                 .pet(pet)
                 .build());
 

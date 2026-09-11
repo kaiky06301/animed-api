@@ -18,6 +18,14 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
     /** Consultas de um intervalo - usada para calcular horários livres. */
     List<Consulta> findByDataHoraBetween(LocalDateTime inicio, LocalDateTime fim);
 
+    /** Agenda do veterinário em um intervalo, na ordem do expediente. */
+    @Query("SELECT c FROM Consulta c JOIN FETCH c.pet p JOIN FETCH p.tutor "
+            + "WHERE c.veterinarioResponsavel.id = :idVeterinario "
+            + "AND c.dataHora BETWEEN :inicio AND :fim ORDER BY c.dataHora")
+    List<Consulta> findAgendaDoVeterinario(@Param("idVeterinario") Long idVeterinario,
+                                           @Param("inicio") LocalDateTime inicio,
+                                           @Param("fim") LocalDateTime fim);
+
 
     Page<Consulta> findByPetId(Long idPet, Pageable pageable);
 

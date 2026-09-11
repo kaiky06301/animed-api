@@ -48,6 +48,12 @@ public class Consulta {
     @Column(name = "VETERINARIO", length = 120)
     private String veterinario;
 
+    /** Profissional dono da agenda em que o horário foi reservado. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ID_VETERINARIO",
+            foreignKey = @ForeignKey(name = "FK_CONSULTA_VETERINARIO"))
+    private Usuario veterinarioResponsavel;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "ID_PET", nullable = false, foreignKey = @ForeignKey(name = "FK_CONSULTA_PET"))
     private Pet pet;

@@ -40,6 +40,28 @@ public class AgendaController {
     }
 
     @Operation(
+            summary = "Agenda do dia do veterinário",
+            description = "Atendimentos marcados na agenda da clínica para a data informada."
+    )
+    @GetMapping("/dia")
+    public ResponseEntity<AgendaDTO.AgendaDoDia> agendaDoDia(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data) {
+        return ResponseEntity.ok(agendaService.agendaDoDia(data));
+    }
+
+    @Operation(
+            summary = "Conclui um atendimento",
+            description = "Marca o atendimento como realizado, credita os pontos ao tutor "
+                    + "e, se o veterinário indicar, já reserva o retorno."
+    )
+    @PatchMapping("/atendimentos/{id}/concluir")
+    public ResponseEntity<AgendaDTO.AtendimentoConcluido> concluir(
+            @PathVariable Long id,
+            @RequestBody(required = false) @Valid AgendaDTO.Conclusao conclusao) {
+        return ResponseEntity.ok(agendaService.concluir(id, conclusao));
+    }
+
+    @Operation(
             summary = "Agenda um atendimento",
             description = "Marca o horário escolhido pelo tutor e credita os pontos do agendamento."
     )
