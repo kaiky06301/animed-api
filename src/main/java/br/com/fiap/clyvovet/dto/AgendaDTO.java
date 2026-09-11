@@ -60,7 +60,15 @@ public class AgendaDTO {
 
             /** Instrução que o tutor deve seguir até o retorno. */
             @Size(max = 500)
-            String orientacao
+            String orientacao,
+
+            /** O que foi encontrado no atendimento. */
+            @Size(max = 1000)
+            String diagnostico,
+
+            /** Conduta indicada, em texto livre. */
+            @Size(max = 1000)
+            String prescricao
     ) {}
 
     /** Resultado do fechamento: o atendimento e o retorno, quando houver. */

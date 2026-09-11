@@ -297,6 +297,16 @@ public class AgendaService {
 
         consulta.setStatus(StatusConsulta.REALIZADA);
 
+        // O que o veterinário escreveu no fechamento fica na ficha do pet
+        if (conclusao != null) {
+            if (conclusao.diagnostico() != null && !conclusao.diagnostico().isBlank()) {
+                consulta.setDiagnostico(conclusao.diagnostico());
+            }
+            if (conclusao.prescricao() != null && !conclusao.prescricao().isBlank()) {
+                consulta.setPrescricao(conclusao.prescricao());
+            }
+        }
+
         TipoAcaoPontuacao acao = consulta.getMotivo() != null
                 && consulta.getMotivo().toLowerCase().contains("check-up")
                 ? TipoAcaoPontuacao.CHECKUP_REALIZADO
