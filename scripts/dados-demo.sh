@@ -32,6 +32,22 @@ ID_TUTOR=$(curl -s -X POST "$API/api/auth/login" \
 
 echo "==> Tutor de demonstração: id $ID_TUTOR"
 
+# O banco local é um arquivo e sobrevive aos reinícios: sem esta checagem,
+# cada execução criaria outro Thor e outra Mel ao lado dos anteriores.
+PETS_EXISTENTES=$(curl -s "$API/api/pets/por-tutor/$ID_TUTOR" \
+  -H "Authorization: Bearer $TOKEN_TUTOR" |
+  python3 -c 'import sys,json;print(json.load(sys.stdin)["totalElements"])')
+
+if [ "$PETS_EXISTENTES" -gt 0 ]; then
+  echo
+  echo "O cenário já existe: o tutor tem $PETS_EXISTENTES pet(s) cadastrado(s)."
+  echo "Para recomeçar do zero, pare a API, apague a pasta data/ e suba de novo:"
+  echo
+  echo "    rm -rf data/ && ./mvnw spring-boot:run -Dspring-boot.run.profiles=h2"
+  echo
+  exit 0
+fi
+
 criar_pet() {
   curl -s -X POST "$API/api/pets" \
     -H "Authorization: Bearer $TOKEN_TUTOR" \
@@ -113,6 +129,21 @@ registrar_vacina "{
   \"dataProximaDose\":\"2026-12-15\",
   \"veterinarioResponsavel\":\"Dra. Helena Prado\",
   \"lote\":\"LT-2025-311\",
+  \"idPet\":$ID_THOR
+}"
+echo
+
+# Uma vacina vencida: é o que faz o app mostrar o alerta de atraso
+VACINA_ANTIGA=$(date -v-13m +%F 2>/dev/null || date -d "-13 months" +%F)
+VENCEU_MES_PASSADO=$(date -v-1m +%F 2>/dev/null || date -d "-1 month" +%F)
+
+echo -n "==> Leishmaniose no Thor (reforço vencido): "
+registrar_vacina "{
+  \"nomeVacina\":\"Leishmaniose\",
+  \"dataAplicacao\":\"$VACINA_ANTIGA\",
+  \"dataProximaDose\":\"$VENCEU_MES_PASSADO\",
+  \"veterinarioResponsavel\":\"Dra. Helena Prado\",
+  \"lote\":\"LT-2025-904\",
   \"idPet\":$ID_THOR
 }"
 echo
