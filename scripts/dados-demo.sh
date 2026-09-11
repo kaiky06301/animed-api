@@ -95,6 +95,28 @@ registrar_vacina "{
 }"
 echo
 
+echo -n "==> V8 no Thor (2025): "
+registrar_vacina "{
+  \"nomeVacina\":\"V8 (óctupla canina)\",
+  \"dataAplicacao\":\"2025-09-15\",
+  \"dataProximaDose\":\"2026-09-15\",
+  \"veterinarioResponsavel\":\"Dra. Helena Prado\",
+  \"lote\":\"LT-2025-072\",
+  \"idPet\":$ID_THOR
+}"
+echo
+
+echo -n "==> Giárdia no Thor (2025): "
+registrar_vacina "{
+  \"nomeVacina\":\"Giárdia\",
+  \"dataAplicacao\":\"2025-12-15\",
+  \"dataProximaDose\":\"2026-12-15\",
+  \"veterinarioResponsavel\":\"Dra. Helena Prado\",
+  \"lote\":\"LT-2025-311\",
+  \"idPet\":$ID_THOR
+}"
+echo
+
 echo -n "==> V3 na Mel: "
 registrar_vacina "{
   \"nomeVacina\":\"V3 (tríplice felina)\",
