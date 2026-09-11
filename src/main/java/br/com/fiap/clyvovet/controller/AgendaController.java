@@ -59,6 +59,16 @@ public class AgendaController {
     }
 
     @Operation(
+            summary = "Registra que o paciente não compareceu",
+            description = "Ato do veterinário, depois do horário. Estorna os pontos "
+                    + "que o tutor havia ganho ao marcar."
+    )
+    @PatchMapping("/atendimentos/{id}/falta")
+    public ResponseEntity<AgendaDTO.Atendimento> registrarFalta(@PathVariable Long id) {
+        return ResponseEntity.ok(agendaService.registrarFalta(id));
+    }
+
+    @Operation(
             summary = "Cancela um atendimento",
             description = "Libera o horário e estorna os pontos ganhos ao marcá-lo."
     )

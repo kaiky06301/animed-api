@@ -74,6 +74,8 @@ public class SecurityConfig {
                 // cancelar é do tutor, e por isso fica fora desta regra.
                 .requestMatchers(HttpMethod.PATCH, "/api/agenda/atendimentos/*/concluir")
                     .hasRole("DOUTOR")
+                .requestMatchers(HttpMethod.PATCH, "/api/agenda/atendimentos/*/falta")
+                    .hasRole("DOUTOR")
 
                 // --- acessíveis aos dois perfis autenticados ------------
                 .requestMatchers("/api/pets/**", "/api/vacinas/**",
