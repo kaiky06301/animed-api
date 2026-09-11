@@ -5,6 +5,7 @@ import br.com.fiap.clyvovet.entity.PetShop;
 import br.com.fiap.clyvovet.entity.TransacaoParceiro;
 import br.com.fiap.clyvovet.entity.Tutor;
 import br.com.fiap.clyvovet.enums.TipoAcaoPontuacao;
+import br.com.fiap.clyvovet.exception.BusinessException;
 import br.com.fiap.clyvovet.exception.ResourceNotFoundException;
 import br.com.fiap.clyvovet.repository.TransacaoParceiroRepository;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,22 @@ public class TransacaoParceiroService {
     private final PetShopService petShopService;
     private final GamificacaoService gamificacaoService;
 
+    /**
+     * Quanto vale cada moeda em reais.
+     *
+     * Dez moedas por real mantém o benefício visível sem transformar a
+     * pontuação em dinheiro fácil.
+     */
+    private static final BigDecimal VALOR_DA_MOEDA = new BigDecimal("0.10");
+
+    /**
+     * Teto do abatimento por compra.
+     *
+     * Sem limite, um saldo acumulado zeraria o valor e o parceiro receberia
+     * nada pela venda — o desconto é um incentivo, não um vale-compras.
+     */
+    private static final BigDecimal TETO_ABATIMENTO = new BigDecimal("0.50");
+
     @Transactional
     public TransacaoParceiroDTO.Response criar(TransacaoParceiroDTO.Request request) {
         Tutor tutor = tutorService.buscarEntidade(request.idTutor());
@@ -46,7 +63,37 @@ public class TransacaoParceiroService {
         BigDecimal desconto = valorBruto
                 .multiply(descontoPercentual)
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        BigDecimal valorFinal = valorBruto.subtract(desconto);
+        BigDecimal subtotal = valorBruto.subtract(desconto);
+
+        // === Abatimento pelas moedas, quando o tutor optar por usá-las ===
+        int moedasUsadas = request.moedasUsadas() == null ? 0 : request.moedasUsadas();
+        BigDecimal abatimento = BigDecimal.ZERO;
+
+        if (moedasUsadas > 0) {
+            if (!tutor.podeGastarMoedas()) {
+                throw new BusinessException(
+                        "As moedas são liberadas no nível Tutor Premium");
+            }
+
+            if (moedasUsadas > tutor.getMoedas()) {
+                throw new BusinessException("Você tem apenas "
+                        + tutor.getMoedas() + " moedas disponíveis");
+            }
+
+            BigDecimal teto = subtotal.multiply(TETO_ABATIMENTO).setScale(2, RoundingMode.HALF_UP);
+            abatimento = BigDecimal.valueOf(moedasUsadas)
+                    .multiply(VALOR_DA_MOEDA)
+                    .setScale(2, RoundingMode.HALF_UP);
+
+            if (abatimento.compareTo(teto) > 0) {
+                throw new BusinessException(
+                        "As moedas podem abater no máximo metade do valor da compra");
+            }
+
+            tutor.gastarMoedas(moedasUsadas);
+        }
+
+        BigDecimal valorFinal = subtotal.subtract(abatimento);
 
         // Comissão Clyvo sobre o valor final
         BigDecimal comissao = valorFinal
@@ -62,6 +109,8 @@ public class TransacaoParceiroService {
                 .petShop(petShop)
                 .valorBruto(valorBruto)
                 .descontoAplicado(desconto)
+                .moedasUsadas(moedasUsadas)
+                .abatimentoMoedas(abatimento)
                 .valorFinal(valorFinal)
                 .comissaoClyvo(comissao)
                 .pontosGerados(pontosGerados)
@@ -126,6 +175,8 @@ public class TransacaoParceiroService {
                 t.getDescontoAplicado(),
                 t.getValorFinal(),
                 t.getComissaoClyvo(),
+                t.getMoedasUsadas(),
+                t.getAbatimentoMoedas(),
                 t.getPontosGerados(),
                 t.getDescricaoProduto(),
                 t.getTutor().getId(),

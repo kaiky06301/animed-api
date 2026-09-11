@@ -102,6 +102,19 @@ public class Tutor {
         this.nivel = NivelGamificacao.fromPontos(this.pontosTotais);
     }
 
+    /**
+     * Gasta moedas do saldo.
+     *
+     * Diferente dos pontos, as moedas saem sem mexer no nível: o nível
+     * reflete o cuidado com o pet, e gastar o benefício não desfaz isso.
+     */
+    public void gastarMoedas(int quantidade) {
+        if (quantidade > this.moedas) {
+            throw new IllegalArgumentException("Saldo de moedas insuficiente");
+        }
+        this.moedas -= quantidade;
+    }
+
     /** Indica se o tutor já pode gastar as moedas acumuladas. */
     public boolean podeGastarMoedas() {
         return this.nivel == NivelGamificacao.TUTOR_PREMIUM;

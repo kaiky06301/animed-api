@@ -79,7 +79,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/pets/**", "/api/vacinas/**",
                                  "/api/consultas/**", "/api/historico-pontuacao/**",
                                  "/api/cuidados/**", "/api/agenda/**",
-                                 "/api/medicamentos/**")
+                                 "/api/medicamentos/**", "/api/transacoes/**")
                     .hasAnyRole("TUTOR", "DOUTOR")
 
                 .anyRequest().authenticated()
