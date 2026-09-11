@@ -46,6 +46,10 @@ public class AgendaService {
     /** Antecedência mínima para marcar um horário. */
     private static final int HORAS_DE_ANTECEDENCIA = 2;
 
+    /** Onde o atendimento acontece. */
+    private static final String CLINICA = "Clínica Veterinária Animed";
+    private static final String ENDERECO = "Av. Paulista, 1000 - São Paulo/SP";
+
     private static final List<String> ORIENTACOES = List.of(
             "Mantenha jejum de 8 a 12 horas, salvo orientação diferente do veterinário",
             "Leve a carteira de vacinação e exames anteriores",
@@ -61,8 +65,7 @@ public class AgendaService {
         DayOfWeek dia = data.getDayOfWeek();
 
         if (dia == DayOfWeek.SUNDAY) {
-            return new AgendaDTO.Disponibilidade(data, false,
-                    "A clínica não atende aos domingos", List.of());
+            return indisponivel(data, "A clínica não atende aos domingos");
         }
 
         LocalTime fechamento = dia == DayOfWeek.SATURDAY ? FECHAMENTO_SABADO : FECHAMENTO;
@@ -99,7 +102,32 @@ public class AgendaService {
                 : dia == DayOfWeek.SATURDAY ? "Sábado: atendimento das 8h às 12h"
                     : "Atendimento das 8h às 18h, com intervalo entre 12h e 13h";
 
-        return new AgendaDTO.Disponibilidade(data, true, observacao, livres);
+        return new AgendaDTO.Disponibilidade(data, true, observacao, livres,
+                MINUTOS_POR_ATENDIMENTO, CLINICA, ENDERECO);
+    }
+
+    /**
+     * Calendário do mês com os dias que ainda têm horário livre.
+     *
+     * Alimenta a seleção de data: o tutor enxerga de uma vez em que dias a
+     * clínica pode recebê-lo, sem precisar abrir dia a dia.
+     */
+    public AgendaDTO.MesDisponivel mes(int ano, int mes) {
+        LocalDate primeiro = LocalDate.of(ano, mes, 1);
+        List<AgendaDTO.DiaDoMes> dias = new ArrayList<>();
+
+        for (LocalDate data = primeiro; data.getMonthValue() == mes; data = data.plusDays(1)) {
+            AgendaDTO.Disponibilidade doDia = disponibilidade(data);
+            dias.add(new AgendaDTO.DiaDoMes(
+                    data, !doDia.horarios().isEmpty(), doDia.horarios().size()));
+        }
+
+        return new AgendaDTO.MesDisponivel(ano, mes, dias);
+    }
+
+    private AgendaDTO.Disponibilidade indisponivel(LocalDate data, String motivo) {
+        return new AgendaDTO.Disponibilidade(data, false, motivo, List.of(),
+                MINUTOS_POR_ATENDIMENTO, CLINICA, ENDERECO);
     }
 
     @Transactional

@@ -16,7 +16,24 @@ public class AgendaDTO {
             LocalDate data,
             boolean atende,
             String observacao,
-            List<String> horarios
+            List<String> horarios,
+            int duracaoMinutos,
+            String clinica,
+            String endereco
+    ) {}
+
+    /** Um dia do calendário e se ainda há horário para marcar. */
+    public record DiaDoMes(
+            LocalDate data,
+            boolean disponivel,
+            int horariosLivres
+    ) {}
+
+    /** Calendário do mês, para destacar os dias com vaga. */
+    public record MesDisponivel(
+            int ano,
+            int mes,
+            List<DiaDoMes> dias
     ) {}
 
     public record Agendamento(
