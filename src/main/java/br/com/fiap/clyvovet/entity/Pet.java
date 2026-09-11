@@ -48,6 +48,10 @@ public class Pet {
     @Column(name = "PESO_KG", precision = 5, scale = 2)
     private BigDecimal pesoKg;
 
+    /** Data da última pesagem que rendeu pontos, para conter repetições. */
+    @Column(name = "DATA_ULTIMA_PESAGEM")
+    private LocalDate dataUltimaPesagem;
+
     @Column(name = "CASTRADO")
     @Builder.Default
     private Boolean castrado = false;

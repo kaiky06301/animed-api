@@ -11,6 +11,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.format.DateTimeFormatter;
+
 /**
  * Cuidados realizados pelo próprio tutor.
  *
@@ -32,29 +35,45 @@ public class CuidadoService {
         Pet pet = petService.buscarEntidade(request.idPet());
         Tutor tutor = pet.getTutor();
 
-        // A pesagem além de pontuar atualiza o dado do pet
-        if (request.tipo() == TipoCuidadoTutor.PESAGEM) {
-            if (request.pesoKg() == null) {
-                throw new BusinessException("Informe o peso para registrar a pesagem");
-            }
-            pet.setPesoKg(request.pesoKg());
-            petRepository.save(pet);
-        }
-
         String descricao = request.observacao() != null && !request.observacao().isBlank()
                 ? request.tipo().getDescricao() + ": " + request.observacao()
                 : request.tipo().getDescricao() + " - " + pet.getNome();
 
-        gamificacaoService.registrarAcao(tutor.getId(), request.tipo().getAcao(), descricao);
+        int pontos;
+        String aviso = null;
+
+        if (request.tipo() == TipoCuidadoTutor.PESAGEM) {
+            if (request.pesoKg() == null) {
+                throw new BusinessException("Informe o peso para registrar a pesagem");
+            }
+
+            // O peso é sempre guardado; o crédito é que respeita o intervalo
+            BigDecimal pesoAntigo = pet.getPesoKg();
+            pontos = petService.registrarPeso(pet, pesoAntigo, request.pesoKg());
+            pet.setPesoKg(request.pesoKg());
+            petRepository.save(pet);
+
+            if (pontos == 0) {
+                aviso = pesoAntigo != null && pesoAntigo.compareTo(request.pesoKg()) == 0
+                        ? "Esse já era o peso registrado"
+                        : "Peso atualizado. A próxima pesagem rende pontos a partir de "
+                                + petService.proximaPesagemPontuada(pet)
+                                        .format(DateTimeFormatter.ofPattern("dd/MM"));
+            }
+        } else {
+            gamificacaoService.registrarAcao(tutor.getId(), request.tipo().getAcao(), descricao);
+            pontos = request.tipo().getAcao().getPontosPadrao();
+        }
 
         Tutor atualizado = tutorRepository.findById(tutor.getId()).orElseThrow();
 
         return new CuidadoDTO.Response(
                 request.tipo(),
                 descricao,
-                request.tipo().getAcao().getPontosPadrao(),
+                pontos,
                 atualizado.getPontosTotais(),
-                atualizado.getMoedas()
+                atualizado.getMoedas(),
+                aviso
         );
     }
 }

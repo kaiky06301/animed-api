@@ -37,6 +37,16 @@ public class PetService {
     /** Máximo de pets por tutor. Acima disso o caso é de plano específico. */
     private static final int LIMITE_PETS_POR_TUTOR = 5;
 
+    /**
+     * Intervalo mínimo entre duas pesagens que rendem pontos.
+     *
+     * O peso de um animal não muda de forma relevante de um dia para o
+     * outro: pontuar cada digitação transformaria a balança em uma fonte
+     * infinita de pontos. O registro continua sendo aceito a qualquer
+     * momento — o que fica limitado é o crédito.
+     */
+    private static final int DIAS_ENTRE_PESAGENS_PONTUADAS = 7;
+
     @Transactional
     @CacheEvict(value = "pets", allEntries = true)
     public PetDTO.Response criar(PetDTO.Request request) {
@@ -164,18 +174,49 @@ public class PetService {
         pet.setCastrado(request.castrado() != null ? request.castrado() : pet.getCastrado());
         pet.setObservacoesSaude(request.observacoesSaude());
 
-        Pet atualizado = petRepository.save(pet);
+        // O peso informado na edição vale como pesagem, com a mesma regra
+        // aplicada ao registro feito pela tela de cuidados.
+        registrarPeso(pet, pesoAntigo, request.pesoKg());
 
-        // Se o peso foi atualizado, gera pontos
-        if (request.pesoKg() != null && !request.pesoKg().equals(pesoAntigo)) {
-            gamificacaoService.registrarAcao(
-                    pet.getTutor().getId(),
-                    TipoAcaoPontuacao.ATUALIZACAO_PESO,
-                    "Atualização de peso do pet " + pet.getNome()
-            );
+        return toResponse(petRepository.save(pet));
+    }
+
+    /**
+     * Credita a atualização de peso, respeitando o intervalo mínimo.
+     *
+     * @return pontos creditados; zero quando o peso não mudou ou quando a
+     *         pesagem anterior ainda é recente demais.
+     */
+    @Transactional
+    public int registrarPeso(Pet pet, BigDecimal pesoAntigo, BigDecimal pesoNovo) {
+        if (pesoNovo == null || pesoNovo.compareTo(pesoAntigo == null
+                ? BigDecimal.valueOf(-1) : pesoAntigo) == 0) {
+            return 0;
         }
 
-        return toResponse(atualizado);
+        LocalDate ultima = pet.getDataUltimaPesagem();
+        LocalDate hoje = LocalDate.now();
+
+        if (ultima != null && ultima.plusDays(DIAS_ENTRE_PESAGENS_PONTUADAS).isAfter(hoje)) {
+            return 0;
+        }
+
+        pet.setDataUltimaPesagem(hoje);
+
+        gamificacaoService.registrarAcao(
+                pet.getTutor().getId(),
+                TipoAcaoPontuacao.ATUALIZACAO_PESO,
+                "Atualização de peso do pet " + pet.getNome()
+        );
+
+        return TipoAcaoPontuacao.ATUALIZACAO_PESO.getPontosPadrao();
+    }
+
+    /** Quando a próxima pesagem volta a render pontos. */
+    public LocalDate proximaPesagemPontuada(Pet pet) {
+        LocalDate ultima = pet.getDataUltimaPesagem();
+        return ultima == null ? LocalDate.now()
+                : ultima.plusDays(DIAS_ENTRE_PESAGENS_PONTUADAS);
     }
 
     @Transactional
