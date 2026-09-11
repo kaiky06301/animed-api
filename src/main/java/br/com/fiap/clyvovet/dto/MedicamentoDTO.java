@@ -62,7 +62,13 @@ public class MedicamentoDTO {
             LocalDateTime ultimaDose,
             LocalDateTime proximaDose,
             /** true quando já passou a hora da próxima dose. */
-            boolean doseLiberada
+            boolean doseLiberada,
+
+            /** Os dias da receita acabaram e o tutor ainda não confirmou. */
+            boolean aguardandoConfirmacao,
+
+            /** Quando o tutor deu o tratamento por encerrado. */
+            LocalDateTime confirmadoEm
     ) {}
 
     /** Resultado do registro de uma dose. */

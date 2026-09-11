@@ -51,6 +51,16 @@ public class MedicamentoController {
                 .body(medicamentoService.registrarDose(id, request));
     }
 
+    @Operation(
+            summary = "Confirma que o tratamento terminou",
+            description = "Ato do tutor, quando os dias da receita se esgotaram. "
+                    + "O medicamento sai da lista."
+    )
+    @PatchMapping("/{id}/concluir")
+    public ResponseEntity<MedicamentoDTO.Response> confirmarFim(@PathVariable Long id) {
+        return ResponseEntity.ok(medicamentoService.confirmarFim(id));
+    }
+
     @Operation(summary = "Encerra o tratamento hoje")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> encerrar(@PathVariable Long id) {
