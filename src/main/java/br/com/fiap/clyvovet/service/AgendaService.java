@@ -275,6 +275,46 @@ public class AgendaService {
     }
 
     /**
+     * Registra que o paciente não compareceu.
+     *
+     * Os pontos do agendamento voltam atrás: eles premiam o cuidado com o
+     * pet, e marcar horário sem aparecer não é cuidado — além de ocupar uma
+     * vaga que faria falta a outro tutor.
+     */
+    @Transactional
+    public AgendaDTO.Atendimento registrarFalta(Long idConsulta) {
+        Consulta consulta = consultaRepository.findById(idConsulta)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Atendimento não encontrado: " + idConsulta));
+
+        if (consulta.getStatus() != StatusConsulta.AGENDADA) {
+            throw new BusinessException(
+                    "Só um atendimento ainda marcado pode ser dado como não comparecido");
+        }
+
+        if (consulta.getDataHora().isAfter(LocalDateTime.now())) {
+            throw new BusinessException("O horário deste atendimento ainda não chegou");
+        }
+
+        consulta.setStatus(StatusConsulta.NAO_COMPARECEU);
+
+        gamificacaoService.estornarAcao(
+                consulta.getPet().getTutor().getId(),
+                TipoAcaoPontuacao.AGENDAMENTO_CONSULTA,
+                "Não comparecimento: " + consulta.getMotivo()
+                        + " - " + consulta.getPet().getNome());
+
+        return new AgendaDTO.Atendimento(
+                consulta.getId(),
+                consulta.getDataHora().toLocalTime().toString(),
+                consulta.getPet().getId(),
+                consulta.getPet().getNome(),
+                consulta.getPet().getTutor().getNome(),
+                consulta.getMotivo(),
+                consulta.getStatus().name());
+    }
+
+    /**
      * Conclui um atendimento da agenda.
      *
      * É o que fecha o ciclo do cuidado: o veterinário confirma que o pet foi
