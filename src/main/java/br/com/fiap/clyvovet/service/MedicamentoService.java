@@ -75,8 +75,40 @@ public class MedicamentoService {
         return toResponse(medicamento);
     }
 
+    /**
+     * Medicamentos do pet, sem os que o tutor já deu por encerrados.
+     *
+     * O tratamento confirmado sai da lista — cumpriu seu papel e não tem
+     * mais nada a ser feito com ele.
+     */
     public List<MedicamentoDTO.Response> listarPorPet(Long idPet) {
-        return medicamentoRepository.findByPet(idPet).stream().map(this::toResponse).toList();
+        return medicamentoRepository.findByPet(idPet).stream()
+                .filter(m -> m.getDataConfirmacaoFim() == null)
+                .map(this::toResponse)
+                .toList();
+    }
+
+    /**
+     * O tutor confirma que o tratamento terminou.
+     *
+     * Só faz sentido para receita cujos dias já se esgotaram: um tratamento
+     * em curso não é encerrado pelo tutor, e sim pelo veterinário.
+     */
+    @Transactional
+    public MedicamentoDTO.Response confirmarFim(Long id) {
+        Medicamento medicamento = buscarEntidade(id);
+
+        if (medicamento.getDataFim() == null) {
+            throw new BusinessException(
+                    "Este medicamento é de uso contínuo e não tem data para terminar");
+        }
+
+        if (!LocalDate.now().isAfter(medicamento.getDataFim())) {
+            throw new BusinessException("O tratamento ainda está em curso");
+        }
+
+        medicamento.setDataConfirmacaoFim(LocalDateTime.now());
+        return toResponse(medicamentoRepository.save(medicamento));
     }
 
     public Medicamento buscarEntidade(Long id) {
@@ -194,6 +226,8 @@ public class MedicamentoService {
                 proxima,
                 emCurso && (proxima == null
                         || !LocalDateTime.now().isBefore(
-                                proxima.minusMinutes(MINUTOS_DE_TOLERANCIA))));
+                                proxima.minusMinutes(MINUTOS_DE_TOLERANCIA))),
+                m.aguardandoConfirmacao(LocalDate.now()),
+                m.getDataConfirmacaoFim());
     }
 }

@@ -49,6 +49,10 @@ public class Medicamento {
     @Column(name = "OBSERVACAO", length = 250)
     private String observacao;
 
+    /** Preenchido quando o tutor confirma que o tratamento acabou. */
+    @Column(name = "DATA_CONFIRMACAO_FIM")
+    private LocalDateTime dataConfirmacaoFim;
+
     @Column(name = "DATA_CADASTRO", nullable = false)
     @Builder.Default
     private LocalDateTime dataCadastro = LocalDateTime.now();
@@ -66,6 +70,11 @@ public class Medicamento {
     @OneToMany(mappedBy = "medicamento", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<DoseMedicamento> doses = new ArrayList<>();
+
+    /** Os dias da receita acabaram, mas o tutor ainda não confirmou. */
+    public boolean aguardandoConfirmacao(LocalDate hoje) {
+        return dataFim != null && hoje.isAfter(dataFim) && dataConfirmacaoFim == null;
+    }
 
     /** O tratamento vale para a data informada? */
     public boolean estaEmCurso(LocalDate data) {
