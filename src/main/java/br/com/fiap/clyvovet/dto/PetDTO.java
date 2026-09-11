@@ -50,6 +50,9 @@ public class PetDTO {
             Boolean castrado,
             String observacoesSaude,
             Long idTutor,
-            String nomeTutor
+            String nomeTutor,
+
+            /** A partir de quando uma nova pesagem volta a render pontos. */
+            LocalDate proximaPesagemPontuada
     ) {}
 }
