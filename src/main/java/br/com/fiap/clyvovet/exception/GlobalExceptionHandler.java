@@ -2,8 +2,11 @@ package br.com.fiap.clyvovet.exception;
 
 import br.com.fiap.clyvovet.dto.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
+
+import java.time.format.DateTimeParseException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -68,6 +71,37 @@ public class GlobalExceptionHandler {
                 req.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    /**
+     * Corpo de requisição ilegível: JSON malformado ou valores que não
+     * existem no tipo esperado, como uma data inexistente no calendário.
+     * São erros do cliente, e não falhas do servidor.
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleCorpoInvalido(HttpMessageNotReadableException ex,
+                                                             HttpServletRequest req) {
+        // O Jackson envolve o erro original, então a causa de data pode estar
+        // em qualquer nível da cadeia.
+        boolean erroDeData = false;
+        for (Throwable causa = ex; causa != null; causa = causa.getCause()) {
+            if (causa instanceof DateTimeParseException) {
+                erroDeData = true;
+                break;
+            }
+        }
+
+        String mensagem = erroDeData
+                ? "Data inválida: verifique se a data informada existe no calendário."
+                : "Não foi possível interpretar os dados enviados.";
+
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Bad Request",
+                mensagem,
+                req.getRequestURI()
+        );
+        return ResponseEntity.badRequest().body(error);
     }
 
     @ExceptionHandler(Exception.class)
