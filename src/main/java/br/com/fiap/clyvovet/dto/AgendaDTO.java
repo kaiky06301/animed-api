@@ -66,6 +66,23 @@ public class AgendaDTO {
             int pontosCreditados
     ) {}
 
+    /** Tudo o que o tutor precisa saber sobre um atendimento. */
+    public record DetalheAtendimento(
+            Long idConsulta,
+            LocalDateTime dataHora,
+            String motivo,
+            String status,
+            String veterinario,
+            String clinica,
+            String endereco,
+            int duracaoMinutos,
+            Long idPet,
+            String nomePet,
+            String diagnostico,
+            String prescricao,
+            List<String> orientacoes
+    ) {}
+
     /** O dia inteiro como o veterinário o enxerga. */
     public record AgendaDoDia(
             LocalDate data,

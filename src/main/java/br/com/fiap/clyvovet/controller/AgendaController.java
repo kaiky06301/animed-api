@@ -50,6 +50,15 @@ public class AgendaController {
     }
 
     @Operation(
+            summary = "Detalhe de um atendimento",
+            description = "Data, horário, profissional, endereço da clínica e preparo do pet."
+    )
+    @GetMapping("/atendimentos/{id}")
+    public ResponseEntity<AgendaDTO.DetalheAtendimento> detalhe(@PathVariable Long id) {
+        return ResponseEntity.ok(agendaService.detalhe(id));
+    }
+
+    @Operation(
             summary = "Conclui um atendimento",
             description = "Marca o atendimento como realizado, credita os pontos ao tutor "
                     + "e, se o veterinário indicar, já reserva o retorno."
