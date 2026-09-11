@@ -188,6 +188,7 @@ public class PetService {
      *         pesagem anterior ainda é recente demais.
      */
     @Transactional
+    @CacheEvict(value = "pets", allEntries = true)
     public int registrarPeso(Pet pet, BigDecimal pesoAntigo, BigDecimal pesoNovo) {
         if (pesoNovo == null || pesoNovo.compareTo(pesoAntigo == null
                 ? BigDecimal.valueOf(-1) : pesoAntigo) == 0) {
@@ -252,7 +253,8 @@ public class PetService {
                 pet.getCastrado(),
                 pet.getObservacoesSaude(),
                 pet.getTutor().getId(),
-                pet.getTutor().getNome()
+                pet.getTutor().getNome(),
+                proximaPesagemPontuada(pet)
         );
     }
 }
