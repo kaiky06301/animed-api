@@ -63,6 +63,10 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT,    "/api/vacinas/**").hasRole("DOUTOR")
                 .requestMatchers(HttpMethod.DELETE, "/api/vacinas/**").hasRole("DOUTOR")
                 .requestMatchers(HttpMethod.POST,   "/api/consultas/**").hasRole("DOUTOR")
+
+                // Prescrever é ato médico; registrar a dose dada é do tutor.
+                .requestMatchers(HttpMethod.POST,   "/api/medicamentos").hasRole("DOUTOR")
+                .requestMatchers(HttpMethod.DELETE, "/api/medicamentos/**").hasRole("DOUTOR")
                 .requestMatchers(HttpMethod.PUT,    "/api/consultas/**").hasRole("DOUTOR")
                 .requestMatchers(HttpMethod.DELETE, "/api/consultas/**").hasRole("DOUTOR")
 
@@ -74,7 +78,8 @@ public class SecurityConfig {
                 // --- acessíveis aos dois perfis autenticados ------------
                 .requestMatchers("/api/pets/**", "/api/vacinas/**",
                                  "/api/consultas/**", "/api/historico-pontuacao/**",
-                                 "/api/cuidados/**", "/api/agenda/**")
+                                 "/api/cuidados/**", "/api/agenda/**",
+                                 "/api/medicamentos/**")
                     .hasAnyRole("TUTOR", "DOUTOR")
 
                 .anyRequest().authenticated()
