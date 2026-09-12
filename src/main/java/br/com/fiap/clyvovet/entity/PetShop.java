@@ -1,6 +1,7 @@
 package br.com.fiap.clyvovet.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.type.NumericBooleanConverter;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -57,7 +58,14 @@ public class PetShop {
     @Builder.Default
     private BigDecimal comissaoPercentual = new BigDecimal("5.00");
 
+    /**
+     * Gravado como 0 ou 1, porque a coluna é NUMBER(1) no Oracle.
+     *
+     * Sem o conversor, o Hibernate compara a coluna com o literal booleano
+     * e a consulta falha — foi o que quebrava o ranking de tutores.
+     */
     @Column(name = "ATIVO", nullable = false)
+    @Convert(converter = NumericBooleanConverter.class)
     @Builder.Default
     private Boolean ativo = true;
 

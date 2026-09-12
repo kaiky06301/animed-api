@@ -2,6 +2,7 @@ package br.com.fiap.clyvovet.entity;
 
 import br.com.fiap.clyvovet.enums.Role;
 import jakarta.persistence.*;
+import org.hibernate.type.NumericBooleanConverter;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -51,7 +52,14 @@ public class Usuario implements UserDetails {
     @JoinColumn(name = "ID_TUTOR", foreignKey = @ForeignKey(name = "FK_USUARIO_TUTOR"))
     private Tutor tutor;
 
+    /**
+     * Gravado como 0 ou 1, porque a coluna é NUMBER(1) no Oracle.
+     *
+     * Sem o conversor, o Hibernate compara a coluna com o literal booleano
+     * e a consulta falha — foi o que quebrava o ranking de tutores.
+     */
     @Column(name = "ATIVO", nullable = false)
+    @Convert(converter = NumericBooleanConverter.class)
     @Builder.Default
     private Boolean ativo = true;
 
