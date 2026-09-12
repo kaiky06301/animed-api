@@ -3,6 +3,7 @@ package br.com.fiap.clyvovet.service;
 import br.com.fiap.clyvovet.dto.auth.AuthResponse;
 import br.com.fiap.clyvovet.dto.auth.LoginRequest;
 import br.com.fiap.clyvovet.dto.auth.RegistroRequest;
+import br.com.fiap.clyvovet.dto.auth.TrocaSenhaRequest;
 import br.com.fiap.clyvovet.entity.Tutor;
 import br.com.fiap.clyvovet.entity.Usuario;
 import br.com.fiap.clyvovet.enums.Role;
@@ -35,6 +36,29 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+
+    /**
+     * Troca a senha do usuário autenticado.
+     *
+     * A senha atual é exigida mesmo com sessão aberta: um aparelho
+     * desbloqueado esquecido na mesa não deve permitir tomar a conta.
+     */
+    @Transactional
+    public void trocarSenha(String email, TrocaSenhaRequest request) {
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException("Usuário não encontrado"));
+
+        if (!passwordEncoder.matches(request.senhaAtual(), usuario.getSenha())) {
+            throw new BusinessException("A senha atual está incorreta");
+        }
+
+        if (passwordEncoder.matches(request.novaSenha(), usuario.getSenha())) {
+            throw new BusinessException("A nova senha precisa ser diferente da atual");
+        }
+
+        usuario.setSenha(passwordEncoder.encode(request.novaSenha()));
+        usuarioRepository.save(usuario);
+    }
 
     @Transactional
     public AuthResponse registrar(RegistroRequest request) {
