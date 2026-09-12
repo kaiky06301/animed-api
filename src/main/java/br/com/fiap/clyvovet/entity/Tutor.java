@@ -3,6 +3,7 @@ package br.com.fiap.clyvovet.entity;
 import br.com.fiap.clyvovet.enums.NivelGamificacao;
 import br.com.fiap.clyvovet.enums.PlanoAssinatura;
 import jakarta.persistence.*;
+import org.hibernate.type.NumericBooleanConverter;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -65,7 +66,14 @@ public class Tutor {
     @Builder.Default
     private LocalDateTime dataCadastro = LocalDateTime.now();
 
+    /**
+     * Gravado como 0 ou 1, porque a coluna é NUMBER(1) no Oracle.
+     *
+     * Sem o conversor, o Hibernate compara a coluna com o literal booleano
+     * e a consulta falha — foi o que quebrava o ranking de tutores.
+     */
     @Column(name = "ATIVO", nullable = false)
+    @Convert(converter = NumericBooleanConverter.class)
     @Builder.Default
     private Boolean ativo = true;
 

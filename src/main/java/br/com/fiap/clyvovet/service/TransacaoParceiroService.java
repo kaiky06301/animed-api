@@ -29,6 +29,10 @@ import java.math.RoundingMode;
  */
 @Service
 @RequiredArgsConstructor
+// Leitura transacional por padrão: com open-in-view desligado, a sessão
+// precisa seguir aberta durante o mapeamento para DTO. Os métodos de
+// escrita declaram o próprio @Transactional, que prevalece.
+@Transactional(readOnly = true)
 public class TransacaoParceiroService {
 
     private final TransacaoParceiroRepository transacaoRepository;

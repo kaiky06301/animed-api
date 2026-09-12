@@ -1,13 +1,185 @@
 {
   "info": {
     "name": "Animed API",
-    "description": "Coleção completa de endpoints da API Animed - Challenge FIAP 2026.\n\nFluxo sugerido:\n1. Criar Tutor\n2. Criar PetShop\n3. Criar Pet (vinculado ao tutor)\n4. Registrar Vacina e Consulta\n5. Registrar Transação (compra em pet shop)\n6. Consultar Ranking e Histórico\n\n**Base URL:** http://localhost:8080",
+    "description": "API do Animed — Challenge FIAP 2026 com a Clyvo VET.\n\nA API exige autenticação: rode **00 - Autenticação › Login** antes de tudo. O token é guardado na coleção automaticamente.\n\nAs pastas marcadas com DOUTOR precisam do login da veterinária; as demais, do tutor.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "idTutor",
+      "value": "4"
+    },
+    {
+      "key": "idPet",
+      "value": "5"
+    }
   ],
   "item": [
+    {
+      "name": "00 - Autenticação",
+      "description": "Comece por aqui: o login guarda o token e libera as outras pastas.",
+      "item": [
+        {
+          "name": "Login — tutor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"tutor@animed.com.br\",\n  \"senha\": \"animed123\"\n}"
+            },
+            "description": "Guarda o token na variável da coleção; as demais requisições o usam.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const corpo = pm.response.json();",
+                  "pm.collectionVariables.set('token', corpo.token);",
+                  "if (corpo.idTutor) pm.collectionVariables.set('idTutor', corpo.idTutor);",
+                  "",
+                  "pm.test('autenticou', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login — veterinária",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"doutor@animed.com.br\",\n  \"senha\": \"animed123\"\n}"
+            },
+            "description": "Guarda o token na variável da coleção; as demais requisições o usam.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const corpo = pm.response.json();",
+                  "pm.collectionVariables.set('token', corpo.token);",
+                  "if (corpo.idTutor) pm.collectionVariables.set('idTutor', corpo.idTutor);",
+                  "",
+                  "pm.test('autenticou', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar tutor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/registrar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "registrar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Novo Tutor\",\n  \"email\": \"novo@animed.com.br\",\n  \"senha\": \"animed123\",\n  \"cpf\": \"111.222.333-44\",\n  \"telefone\": \"(11) 91234-5678\",\n  \"role\": \"TUTOR\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Trocar a própria senha",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/senha",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "senha"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"senhaAtual\": \"animed123\",\n  \"novaSenha\": \"novaSenha123\"\n}"
+            },
+            "description": "Exige a senha atual. Não rode junto com a pasta inteira: trocaria a senha da conta de demonstração."
+          }
+        }
+      ]
+    },
     {
       "name": "01 - Tutores",
       "item": [
@@ -15,12 +187,26 @@
           "name": "Criar Tutor",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nome\": \"Marina Oliveira\",\n  \"email\": \"marina@email.com\",\n  \"cpf\": \"123.456.789-00\",\n  \"telefone\": \"(11) 98765-4321\",\n  \"plano\": \"INTERMEDIARIO\"\n}"
             },
-            "url": { "raw": "{{baseUrl}}/api/tutores", "host": ["{{baseUrl}}"], "path": ["api", "tutores"] }
+            "url": {
+              "raw": "{{baseUrl}}/api/tutores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tutores"
+              ]
+            }
           }
         },
         {
@@ -29,12 +215,26 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/tutores?page=0&size=10&sort=nome,asc",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "tutores"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tutores"
+              ],
               "query": [
-                { "key": "page", "value": "0" },
-                { "key": "size", "value": "10" },
-                { "key": "sort", "value": "nome,asc" }
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                },
+                {
+                  "key": "sort",
+                  "value": "nome,asc"
+                }
               ]
             }
           }
@@ -43,7 +243,17 @@
           "name": "Buscar Tutor por ID",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{baseUrl}}/api/tutores/1", "host": ["{{baseUrl}}"], "path": ["api", "tutores", "1"] }
+            "url": {
+              "raw": "{{baseUrl}}/api/tutores/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tutores",
+                "1"
+              ]
+            }
           }
         },
         {
@@ -52,9 +262,20 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/tutores/buscar?nome=marina",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "tutores", "buscar"],
-              "query": [{ "key": "nome", "value": "marina" }]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tutores",
+                "buscar"
+              ],
+              "query": [
+                {
+                  "key": "nome",
+                  "value": "marina"
+                }
+              ]
             }
           }
         },
@@ -64,9 +285,20 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/tutores/ranking?size=5",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "tutores", "ranking"],
-              "query": [{ "key": "size", "value": "5" }]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tutores",
+                "ranking"
+              ],
+              "query": [
+                {
+                  "key": "size",
+                  "value": "5"
+                }
+              ]
             }
           }
         },
@@ -74,26 +306,62 @@
           "name": "Filtrar por Nível",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{baseUrl}}/api/tutores/por-nivel/CUIDADOR", "host": ["{{baseUrl}}"], "path": ["api", "tutores", "por-nivel", "CUIDADOR"] }
+            "url": {
+              "raw": "{{baseUrl}}/api/tutores/por-nivel/CUIDADOR",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tutores",
+                "por-nivel",
+                "CUIDADOR"
+              ]
+            }
           }
         },
         {
           "name": "Atualizar Tutor",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nome\": \"Marina Oliveira Silva\",\n  \"email\": \"marina.silva@email.com\",\n  \"cpf\": \"123.456.789-00\",\n  \"telefone\": \"(11) 99999-8888\",\n  \"plano\": \"PREMIUM\"\n}"
             },
-            "url": { "raw": "{{baseUrl}}/api/tutores/1", "host": ["{{baseUrl}}"], "path": ["api", "tutores", "1"] }
+            "url": {
+              "raw": "{{baseUrl}}/api/tutores/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tutores",
+                "1"
+              ]
+            }
           }
         },
         {
           "name": "Deletar Tutor",
           "request": {
             "method": "DELETE",
-            "url": { "raw": "{{baseUrl}}/api/tutores/3", "host": ["{{baseUrl}}"], "path": ["api", "tutores", "3"] }
+            "url": {
+              "raw": "{{baseUrl}}/api/tutores/3",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tutores",
+                "3"
+              ]
+            }
           }
         }
       ]
@@ -105,45 +373,140 @@
           "name": "Criar Pet",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nome\": \"Thor\",\n  \"especie\": \"CACHORRO\",\n  \"raca\": \"Golden Retriever\",\n  \"dataNascimento\": \"2020-03-15\",\n  \"pesoKg\": 32.5,\n  \"castrado\": true,\n  \"observacoesSaude\": \"Saudável, sem alergias\",\n  \"idTutor\": 1\n}"
             },
-            "url": { "raw": "{{baseUrl}}/api/pets", "host": ["{{baseUrl}}"], "path": ["api", "pets"] }
+            "url": {
+              "raw": "{{baseUrl}}/api/pets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "pets"
+              ]
+            }
           }
         },
         {
           "name": "Listar Pets",
-          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/pets", "host": ["{{baseUrl}}"], "path": ["api", "pets"] } }
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/pets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "pets"
+              ]
+            }
+          }
         },
         {
           "name": "Buscar Pet por ID",
-          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/pets/1", "host": ["{{baseUrl}}"], "path": ["api", "pets", "1"] } }
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/pets/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "pets",
+                "1"
+              ]
+            }
+          }
         },
         {
           "name": "Pets por Tutor",
-          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/pets/por-tutor/1", "host": ["{{baseUrl}}"], "path": ["api", "pets", "por-tutor", "1"] } }
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/pets/por-tutor/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "pets",
+                "por-tutor",
+                "1"
+              ]
+            }
+          }
         },
         {
           "name": "Pets por Espécie",
-          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/pets/por-especie/CACHORRO", "host": ["{{baseUrl}}"], "path": ["api", "pets", "por-especie", "CACHORRO"] } }
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/pets/por-especie/CACHORRO",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "pets",
+                "por-especie",
+                "CACHORRO"
+              ]
+            }
+          }
         },
         {
           "name": "Atualizar Pet (gera pontos no peso)",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nome\": \"Thor\",\n  \"especie\": \"CACHORRO\",\n  \"raca\": \"Golden Retriever\",\n  \"dataNascimento\": \"2020-03-15\",\n  \"pesoKg\": 33.2,\n  \"castrado\": true,\n  \"observacoesSaude\": \"Saudável\",\n  \"idTutor\": 1\n}"
             },
-            "url": { "raw": "{{baseUrl}}/api/pets/1", "host": ["{{baseUrl}}"], "path": ["api", "pets", "1"] }
+            "url": {
+              "raw": "{{baseUrl}}/api/pets/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "pets",
+                "1"
+              ]
+            }
           }
         },
         {
           "name": "Deletar Pet",
-          "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/pets/4", "host": ["{{baseUrl}}"], "path": ["api", "pets", "4"] } }
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/pets/4",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "pets",
+                "4"
+              ]
+            }
+          }
         }
       ]
     },
@@ -154,41 +517,123 @@
           "name": "Registrar Vacina",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nomeVacina\": \"V10 Polivalente\",\n  \"dataAplicacao\": \"2024-09-15\",\n  \"dataProximaDose\": \"2025-09-15\",\n  \"veterinarioResponsavel\": \"Dra. Patrícia Lima\",\n  \"clinica\": \"Clínica VetCare\",\n  \"lote\": \"BTH2024-589\",\n  \"observacoes\": \"Sem reações\",\n  \"idPet\": 1\n}"
             },
-            "url": { "raw": "{{baseUrl}}/api/vacinas", "host": ["{{baseUrl}}"], "path": ["api", "vacinas"] }
+            "url": {
+              "raw": "{{baseUrl}}/api/vacinas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vacinas"
+              ]
+            }
           }
         },
         {
           "name": "Listar Vacinas",
-          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/vacinas", "host": ["{{baseUrl}}"], "path": ["api", "vacinas"] } }
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/vacinas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vacinas"
+              ]
+            }
+          }
         },
         {
           "name": "Vacinas por Pet",
-          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/vacinas/por-pet/1", "host": ["{{baseUrl}}"], "path": ["api", "vacinas", "por-pet", "1"] } }
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/vacinas/por-pet/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vacinas",
+                "por-pet",
+                "1"
+              ]
+            }
+          }
         },
         {
           "name": "Vacinas por Tutor (todos pets)",
-          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/vacinas/por-tutor/1", "host": ["{{baseUrl}}"], "path": ["api", "vacinas", "por-tutor", "1"] } }
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/vacinas/por-tutor/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vacinas",
+                "por-tutor",
+                "1"
+              ]
+            }
+          }
         },
         {
           "name": "Atualizar Vacina",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nomeVacina\": \"V10 Polivalente\",\n  \"dataAplicacao\": \"2024-09-15\",\n  \"dataProximaDose\": \"2025-10-15\",\n  \"veterinarioResponsavel\": \"Dra. Patrícia Lima\",\n  \"clinica\": \"Clínica VetCare\",\n  \"lote\": \"BTH2024-589\",\n  \"observacoes\": \"Reforço programado\",\n  \"idPet\": 1\n}"
             },
-            "url": { "raw": "{{baseUrl}}/api/vacinas/1", "host": ["{{baseUrl}}"], "path": ["api", "vacinas", "1"] }
+            "url": {
+              "raw": "{{baseUrl}}/api/vacinas/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vacinas",
+                "1"
+              ]
+            }
           }
         },
         {
           "name": "Deletar Vacina",
-          "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/vacinas/3", "host": ["{{baseUrl}}"], "path": ["api", "vacinas", "3"] } }
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/vacinas/3",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vacinas",
+                "3"
+              ]
+            }
+          }
         }
       ]
     },
@@ -199,41 +644,123 @@
           "name": "Agendar Consulta",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"dataHora\": \"2025-06-15T10:30:00\",\n  \"motivo\": \"Check-up anual\",\n  \"valor\": 280.00,\n  \"status\": \"AGENDADA\",\n  \"veterinario\": \"Dra. Patrícia Lima\",\n  \"idPet\": 1,\n  \"idPetShop\": 1\n}"
             },
-            "url": { "raw": "{{baseUrl}}/api/consultas", "host": ["{{baseUrl}}"], "path": ["api", "consultas"] }
+            "url": {
+              "raw": "{{baseUrl}}/api/consultas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "consultas"
+              ]
+            }
           }
         },
         {
           "name": "Marcar Consulta como Realizada (gera +60 pontos)",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"dataHora\": \"2025-06-15T10:30:00\",\n  \"motivo\": \"Check-up anual\",\n  \"diagnostico\": \"Animal saudável\",\n  \"prescricao\": \"Manter dieta atual\",\n  \"valor\": 280.00,\n  \"status\": \"REALIZADA\",\n  \"veterinario\": \"Dra. Patrícia Lima\",\n  \"idPet\": 1,\n  \"idPetShop\": 1\n}"
             },
-            "url": { "raw": "{{baseUrl}}/api/consultas/1", "host": ["{{baseUrl}}"], "path": ["api", "consultas", "1"] }
+            "url": {
+              "raw": "{{baseUrl}}/api/consultas/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "consultas",
+                "1"
+              ]
+            }
           }
         },
         {
           "name": "Listar Consultas",
-          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/consultas", "host": ["{{baseUrl}}"], "path": ["api", "consultas"] } }
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/consultas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "consultas"
+              ]
+            }
+          }
         },
         {
           "name": "Consultas por Pet",
-          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/consultas/por-pet/1", "host": ["{{baseUrl}}"], "path": ["api", "consultas", "por-pet", "1"] } }
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/consultas/por-pet/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "consultas",
+                "por-pet",
+                "1"
+              ]
+            }
+          }
         },
         {
           "name": "Consultas por Status",
-          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/consultas/por-status/REALIZADA", "host": ["{{baseUrl}}"], "path": ["api", "consultas", "por-status", "REALIZADA"] } }
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/consultas/por-status/REALIZADA",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "consultas",
+                "por-status",
+                "REALIZADA"
+              ]
+            }
+          }
         },
         {
           "name": "Deletar Consulta",
-          "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/consultas/2", "host": ["{{baseUrl}}"], "path": ["api", "consultas", "2"] } }
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/consultas/2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "consultas",
+                "2"
+              ]
+            }
+          }
         }
       ]
     },
@@ -244,21 +771,60 @@
           "name": "Criar Pet Shop",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"razaoSocial\": \"Mundo Pet Comércio Ltda\",\n  \"nomeFantasia\": \"Mundo Pet\",\n  \"cnpj\": \"12.345.678/0001-99\",\n  \"endereco\": \"Av. Paulista, 1500\",\n  \"cidade\": \"São Paulo\",\n  \"uf\": \"SP\",\n  \"telefone\": \"(11) 3333-4444\",\n  \"taxaMensal\": 99.90,\n  \"comissaoPercentual\": 5.00\n}"
             },
-            "url": { "raw": "{{baseUrl}}/api/petshops", "host": ["{{baseUrl}}"], "path": ["api", "petshops"] }
+            "url": {
+              "raw": "{{baseUrl}}/api/petshops",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "petshops"
+              ]
+            }
           }
         },
         {
           "name": "Listar Pet Shops",
-          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/petshops", "host": ["{{baseUrl}}"], "path": ["api", "petshops"] } }
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/petshops",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "petshops"
+              ]
+            }
+          }
         },
         {
           "name": "Listar Ativos",
-          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/petshops/ativos", "host": ["{{baseUrl}}"], "path": ["api", "petshops", "ativos"] } }
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/petshops/ativos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "petshops",
+                "ativos"
+              ]
+            }
+          }
         },
         {
           "name": "Por Localização (cidade + UF)",
@@ -266,11 +832,23 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/petshops/por-localizacao?cidade=São Paulo&uf=SP",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "petshops", "por-localizacao"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "petshops",
+                "por-localizacao"
+              ],
               "query": [
-                { "key": "cidade", "value": "São Paulo" },
-                { "key": "uf", "value": "SP" }
+                {
+                  "key": "cidade",
+                  "value": "São Paulo"
+                },
+                {
+                  "key": "uf",
+                  "value": "SP"
+                }
               ]
             }
           }
@@ -284,29 +862,99 @@
           "name": "Registrar Compra (desconto auto por nível)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"valorBruto\": 150.00,\n  \"descricaoProduto\": \"Ração Premier Golden 15kg\",\n  \"idTutor\": 1,\n  \"idPetShop\": 1\n}"
             },
-            "url": { "raw": "{{baseUrl}}/api/transacoes", "host": ["{{baseUrl}}"], "path": ["api", "transacoes"] }
+            "url": {
+              "raw": "{{baseUrl}}/api/transacoes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "transacoes"
+              ]
+            }
           }
         },
         {
           "name": "Listar Transações",
-          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/transacoes", "host": ["{{baseUrl}}"], "path": ["api", "transacoes"] } }
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/transacoes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "transacoes"
+              ]
+            }
+          }
         },
         {
           "name": "Transações por Tutor",
-          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/transacoes/por-tutor/1", "host": ["{{baseUrl}}"], "path": ["api", "transacoes", "por-tutor", "1"] } }
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/transacoes/por-tutor/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "transacoes",
+                "por-tutor",
+                "1"
+              ]
+            }
+          }
         },
         {
           "name": "Total de Comissão por Pet Shop",
-          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/transacoes/relatorios/comissao-petshop/1", "host": ["{{baseUrl}}"], "path": ["api", "transacoes", "relatorios", "comissao-petshop", "1"] } }
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/transacoes/relatorios/comissao-petshop/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "transacoes",
+                "relatorios",
+                "comissao-petshop",
+                "1"
+              ]
+            }
+          }
         },
         {
           "name": "Total Gasto por Tutor",
-          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/transacoes/relatorios/gasto-tutor/1", "host": ["{{baseUrl}}"], "path": ["api", "transacoes", "relatorios", "gasto-tutor", "1"] } }
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/transacoes/relatorios/gasto-tutor/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "transacoes",
+                "relatorios",
+                "gasto-tutor",
+                "1"
+              ]
+            }
+          }
         }
       ]
     },
@@ -315,15 +963,55 @@
       "item": [
         {
           "name": "Listar Histórico",
-          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/historico-pontuacao", "host": ["{{baseUrl}}"], "path": ["api", "historico-pontuacao"] } }
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/historico-pontuacao",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "historico-pontuacao"
+              ]
+            }
+          }
         },
         {
           "name": "Histórico por Tutor",
-          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/historico-pontuacao/por-tutor/1", "host": ["{{baseUrl}}"], "path": ["api", "historico-pontuacao", "por-tutor", "1"] } }
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/historico-pontuacao/por-tutor/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "historico-pontuacao",
+                "por-tutor",
+                "1"
+              ]
+            }
+          }
         },
         {
           "name": "Histórico por Tipo de Ação",
-          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/historico-pontuacao/por-tipo/REGISTRO_VACINA", "host": ["{{baseUrl}}"], "path": ["api", "historico-pontuacao", "por-tipo", "REGISTRO_VACINA"] } }
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/historico-pontuacao/por-tipo/REGISTRO_VACINA",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "historico-pontuacao",
+                "por-tipo",
+                "REGISTRO_VACINA"
+              ]
+            }
+          }
         }
       ]
     },
@@ -334,31 +1022,623 @@
           "name": "Email inválido (400)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nome\": \"Teste\",\n  \"email\": \"email-invalido\",\n  \"cpf\": \"123.456.789-00\"\n}"
             },
-            "url": { "raw": "{{baseUrl}}/api/tutores", "host": ["{{baseUrl}}"], "path": ["api", "tutores"] }
+            "url": {
+              "raw": "{{baseUrl}}/api/tutores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tutores"
+              ]
+            }
           }
         },
         {
           "name": "Tutor não encontrado (404)",
-          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/tutores/9999", "host": ["{{baseUrl}}"], "path": ["api", "tutores", "9999"] } }
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/tutores/9999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tutores",
+                "9999"
+              ]
+            }
+          }
         },
         {
           "name": "CPF duplicado (422)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nome\": \"Duplicado\",\n  \"email\": \"novo@email.com\",\n  \"cpf\": \"123.456.789-00\"\n}"
             },
-            "url": { "raw": "{{baseUrl}}/api/tutores", "host": ["{{baseUrl}}"], "path": ["api", "tutores"] }
+            "url": {
+              "raw": "{{baseUrl}}/api/tutores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tutores"
+              ]
+            }
           }
         }
       ]
+    },
+    {
+      "name": "09 - Agenda e atendimentos",
+      "item": [
+        {
+          "name": "Horários livres do dia",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/agenda/disponibilidade?data=2026-09-18",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "agenda",
+                "disponibilidade"
+              ],
+              "query": [
+                {
+                  "key": "data",
+                  "value": "2026-09-18"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Calendário do mês",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/agenda/disponibilidade/mes?ano=2026&mes=9",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "agenda",
+                "disponibilidade",
+                "mes"
+              ],
+              "query": [
+                {
+                  "key": "ano",
+                  "value": "2026"
+                },
+                {
+                  "key": "mes",
+                  "value": "9"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Agenda do dia (veterinário)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/agenda/dia?data=2026-09-18",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "agenda",
+                "dia"
+              ],
+              "query": [
+                {
+                  "key": "data",
+                  "value": "2026-09-18"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Marcar atendimento",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/agenda/agendamentos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "agenda",
+                "agendamentos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idPet\": \"{{idPet}}\",\n  \"dataHora\": \"2026-09-18T09:00:00\",\n  \"motivo\": \"Check-up preventivo\"\n}"
+            },
+            "description": "Credita 10 pontos ao tutor e tira o horário da agenda."
+          }
+        },
+        {
+          "name": "Detalhe do atendimento",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/agenda/atendimentos/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "agenda",
+                "atendimentos",
+                "1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Concluir — DOUTOR",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/agenda/atendimentos/1/concluir",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "agenda",
+                "atendimentos",
+                "1",
+                "concluir"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"diagnostico\": \"Otite externa bilateral\",\n  \"prescricao\": \"Limpeza auricular 2x ao dia por 10 dias\",\n  \"retorno\": \"2026-09-30T09:00:00\",\n  \"orientacao\": \"Não molhar as orelhas no banho\"\n}"
+            },
+            "description": "Credita os pontos do atendimento e reserva o retorno."
+          }
+        },
+        {
+          "name": "Não compareceu — DOUTOR",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/agenda/atendimentos/1/falta",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "agenda",
+                "atendimentos",
+                "1",
+                "falta"
+              ]
+            },
+            "description": "Estorna os pontos que o tutor ganhou ao marcar."
+          }
+        },
+        {
+          "name": "Cancelar — TUTOR",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/agenda/atendimentos/1/cancelar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "agenda",
+                "atendimentos",
+                "1",
+                "cancelar"
+              ]
+            },
+            "description": "Libera o horário e retira 30 pontos."
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 - Medicamentos",
+      "item": [
+        {
+          "name": "Prescrever — DOUTOR",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/medicamentos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "medicamentos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idPet\": \"{{idPet}}\",\n  \"nome\": \"Amoxicilina 250mg\",\n  \"dosagem\": \"1 comprimido\",\n  \"intervaloHoras\": 12,\n  \"dataInicio\": \"2026-09-12\",\n  \"dataFim\": \"2026-09-19\",\n  \"observacao\": \"Dar junto com a comida\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Prescrever vermífugo (3 meses)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/medicamentos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "medicamentos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idPet\": \"{{idPet}}\",\n  \"nome\": \"Vermífugo\",\n  \"dosagem\": \"1 comprimido\",\n  \"intervaloHoras\": 2160,\n  \"dataInicio\": \"2026-09-12\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Medicamentos do pet",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/medicamentos/por-pet/{{idPet}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "medicamentos",
+                "por-pet",
+                "{{idPet}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Registrar dose — TUTOR",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/medicamentos/1/doses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "medicamentos",
+                "1",
+                "doses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "description": "Só pontua se o intervalo da receita foi respeitado."
+          }
+        },
+        {
+          "name": "Dose com horário informado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/medicamentos/1/doses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "medicamentos",
+                "1",
+                "doses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dataHora\": \"2026-09-12T08:00:00\",\n  \"observacao\": \"Dei junto com a ração\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Confirmar fim — TUTOR",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/medicamentos/1/concluir",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "medicamentos",
+                "1",
+                "concluir"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Encerrar tratamento — DOUTOR",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/medicamentos/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "medicamentos",
+                "1"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 - Cuidados do tutor",
+      "item": [
+        {
+          "name": "Registrar pesagem",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cuidados",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cuidados"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idPet\": \"{{idPet}}\",\n  \"tipo\": \"PESAGEM\",\n  \"pesoKg\": 33.4,\n  \"observacao\": \"Pesado na clínica\"\n}"
+            },
+            "description": "Pontua uma vez a cada sete dias, por pet."
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 - Regras de negócio (erros esperados)",
+      "item": [
+        {
+          "name": "Tutor tenta prescrever (403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/medicamentos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "medicamentos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idPet\": \"{{idPet}}\",\n  \"nome\": \"Teste\",\n  \"intervaloHoras\": 12,\n  \"dataInicio\": \"2026-09-12\"\n}"
+            },
+            "description": "Com o token do TUTOR, a API responde 403: prescrever é ato médico."
+          }
+        },
+        {
+          "name": "Horário já ocupado (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/agenda/agendamentos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "agenda",
+                "agendamentos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idPet\": \"{{idPet}}\",\n  \"dataHora\": \"2026-09-18T09:00:00\",\n  \"motivo\": \"Consulta de rotina\"\n}"
+            },
+            "description": "Rode duas vezes: a segunda recebe 422."
+          }
+        },
+        {
+          "name": "Domingo sem atendimento",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/agenda/disponibilidade?data=2026-09-20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "agenda",
+                "disponibilidade"
+              ],
+              "query": [
+                {
+                  "key": "data",
+                  "value": "2026-09-20"
+                }
+              ]
+            },
+            "description": "Devolve atende=false com a explicação."
+          }
+        },
+        {
+          "name": "Moedas antes do Premium (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/transacoes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "transacoes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valorBruto\": 219.9,\n  \"descricaoProduto\": \"Ração Premium\",\n  \"idTutor\": \"{{idTutor}}\",\n  \"idPetShop\": 1,\n  \"moedasUsadas\": 50\n}"
+            },
+            "description": "As moedas só são liberadas no nível Tutor Premium."
+          }
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Garante um token antes de qualquer requisição autenticada,",
+          "// para que cada pasta possa ser executada isoladamente.",
+          "if (!pm.collectionVariables.get('token')) {",
+          "  pm.sendRequest({",
+          "    url: pm.collectionVariables.get('baseUrl') + '/api/auth/login',",
+          "    method: 'POST',",
+          "    header: { 'Content-Type': 'application/json' },",
+          "    body: { mode: 'raw', raw: JSON.stringify({",
+          "      email: 'tutor@animed.com.br', senha: 'animed123' }) },",
+          "  }, (erro, resposta) => {",
+          "    if (erro) return;",
+          "    const corpo = resposta.json();",
+          "    pm.collectionVariables.set('token', corpo.token);",
+          "    pm.collectionVariables.set('idTutor', corpo.idTutor);",
+          "  });",
+          "}"
+        ]
+      }
     }
   ]
 }
