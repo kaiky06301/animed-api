@@ -185,6 +185,8 @@ PetShop  (1) ──── (N) TransacaoParceiro
 PetShop  (1) ──── (N) Consulta
 ```
 
+> 📎 **Schema completo para executar:** [`docs/schema-completo.sql`](docs/schema-completo.sql)
+> 📎 **Referência das tabelas, tipos e armadilhas:** [`docs/BANCO-DE-DADOS.md`](docs/BANCO-DE-DADOS.md)
 > 📎 Diagrama de classes detalhado em `docs/DIAGRAMA_CLASSES.md`
 > 📎 Diagrama Entidade-Relacionamento em `docs/DER.png` (gerado pela equipe de Database no Oracle Data Modeler)
 
