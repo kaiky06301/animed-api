@@ -15,6 +15,8 @@ Sistema backend que materializa a proposta da **Animed**: transformar a jornada 
 - [Modelo de Domínio](#-modelo-de-domínio)
 - [Como Executar](#-como-executar)
 - [Documentação das Rotas](#-documentação-das-rotas)
+- [Segurança e perfis](#-segurança-e-perfis)
+- [Testes](#-testes)
 - [Equipe](#-equipe)
 
 ---
@@ -46,34 +48,56 @@ Uma **plataforma gamificada** onde cada ação de cuidado vira pontos, descontos
 
 ## 🎮 Diferencial — Sistema de Gamificação
 
-### Como o tutor ganha pontos:
+### Como o tutor ganha pontos
 
-| Ação | Pontos |
-|------|--------|
-| Cadastrar pet | +50 |
-| Completar perfil do pet | +100 |
-| Registrar vacinação | +30 |
-| Registrar consulta | +40 |
-| Check-up realizado | +60 |
-| Atualizar peso | +10 |
-| Compra em parceiro | 1 ponto / R$10 |
+| Ação | Pontos | Quem registra |
+|------|-------:|---------------|
+| Cadastrar o primeiro pet | 50 | tutor |
+| Perfil completo do pet | 50 | tutor |
+| Foto do primeiro pet | 15 | tutor |
+| Dose de medicamento | 15 | tutor |
+| Atualização de peso | 5 | tutor |
+| Agendar atendimento | 10 | tutor |
+| Compra em parceiro | 1 ponto / R$ 10 | tutor |
+| Vacina aplicada | 25 | **veterinário** |
+| Consulta realizada | 20 | **veterinário** |
+| Check-up concluído | 30 | **veterinário** |
 
 ### Sistema de Níveis
 
-| Nível | Pontos | Desconto |
-|-------|--------|----------|
-| 🥉 **Básico** | 0–99 | 0% |
-| 🥈 **Cuidador** | 100–499 | 5% |
-| 🥇 **Tutor Premium** | 500+ | 15% |
+| Nível | Pontos | Desconto | Moedas |
+|-------|--------|---------:|--------|
+| 🥉 **Básico** | 0 – 299 | 0% | bloqueadas |
+| 🥈 **Cuidador** | 300 – 1.199 | 10% | bloqueadas |
+| 🥇 **Tutor Premium** | 1.200+ | 15% | **liberadas** |
 
-### Como funciona o desconto na prática:
+Cada crédito de pontos gera também **moedas**, um saldo gastável a dez centavos por unidade. Elas só são liberadas no Tutor Premium e abatem no máximo metade do valor de uma compra.
+
+### Como funciona o desconto na prática
 
 ```
-Produto: Ração Premium R$ 150,00
-Tutor BÁSICO   → paga R$ 150,00 (0% desc)
-Tutor CUIDADOR → paga R$ 142,50 (5% desc) → Animed ganha 5% comissão = R$ 7,13
-Tutor PREMIUM  → paga R$ 127,50 (15% desc) → Animed ganha 5% comissão = R$ 6,38
+Produto: Ração Premium R$ 219,90
+
+Tutor BÁSICO    → paga R$ 219,90   (0% de desconto)
+Tutor CUIDADOR  → paga R$ 197,91   (10%)  → comissão de 5% = R$ 9,90
+Tutor PREMIUM   → paga R$ 186,92   (15%)  → comissão de 5% = R$ 9,35
+Tutor PREMIUM   → paga R$ 149,54   (15% + 374 moedas)
 ```
+
+### Como a economia se defende
+
+Uma gamificação ingênua vira fonte infinita de pontos. As travas implementadas:
+
+| Brecha | Trava | Onde |
+|--------|-------|------|
+| Cadastrar vários pets para repetir o bônus | Só o primeiro pet pontua; limite de 5 | `PetService` |
+| Trocar a foto sem parar | Uma vez, e só no primeiro pet | `PetService.registrarFoto` |
+| Digitar peso repetidamente | Um crédito a cada 7 dias, por pet | `PetService.registrarPeso` |
+| Registrar dose em série | Só pontua respeitando o intervalo da receita | `MedicamentoService` |
+| Marcar horário só para pontuar | Falta estorna; cancelamento custa 30 pontos | `AgendaService` |
+| Gastar moedas zerando a compra | Abatimento limitado a metade do valor | `TransacaoParceiroService` |
+
+O registro sempre acontece — o histórico clínico precisa refletir a realidade. O que as regras limitam é o **crédito**.
 
 ---
 
@@ -140,18 +164,25 @@ Tutor PREMIUM  → paga R$ 127,50 (15% desc) → Animed ganha 5% comissão = R$ 
 | `Consulta` | Agendamento/registro de consulta veterinária |
 | `PetShop` | Parceiro B2B (taxa mensal + comissão por venda) |
 | `TransacaoParceiro` | Compra realizada por tutor em pet shop |
-| `HistoricoPontuacao` | Auditoria de todas as ações que renderam pontos |
+| `HistoricoPontuacao` | Auditoria de todas as ações que renderam pontos, com estornos |
+| `Usuario` | Credencial de acesso, com perfil TUTOR ou DOUTOR |
+| `Medicamento` | Prescrição do veterinário: remédio, intervalo e duração |
+| `DoseMedicamento` | Dose efetivamente administrada pelo tutor |
 
 ### Relacionamentos
 
 ```
-Tutor (1) ──── (N) Pet
-Tutor (1) ──── (N) HistoricoPontuacao
-Tutor (1) ──── (N) TransacaoParceiro
-Pet   (1) ──── (N) Vacina
-Pet   (1) ──── (N) Consulta
-PetShop (1) ── (N) TransacaoParceiro
-PetShop (1) ── (N) Consulta
+Tutor    (1) ──── (N) Pet
+Tutor    (1) ──── (N) HistoricoPontuacao
+Tutor    (1) ──── (N) TransacaoParceiro
+Usuario  (N) ──── (1) Tutor            credencial do tutor
+Pet      (1) ──── (N) Vacina
+Pet      (1) ──── (N) Consulta
+Pet      (1) ──── (N) Medicamento
+Medicamento (1) ─ (N) DoseMedicamento
+Consulta (N) ──── (1) Usuario          veterinário responsável
+PetShop  (1) ──── (N) TransacaoParceiro
+PetShop  (1) ──── (N) Consulta
 ```
 
 > 📎 Diagrama de classes detalhado em `docs/DIAGRAMA_CLASSES.md`
@@ -283,6 +314,43 @@ H2 Console: http://localhost:8080/h2-console
 | `GET` | `/api/transacoes/relatorios/gasto-tutor/{id}` | Total gasto |
 | `DELETE` | `/api/transacoes/{id}` | Estornar |
 
+### 🔐 Autenticação (`/api/auth`)
+
+| Método | Rota | Descrição | Perfil |
+|--------|------|-----------|--------|
+| POST | `/registrar` | Cria conta de tutor e o registro em `TB_TUTOR` | público |
+| POST | `/login` | Devolve o token JWT e os dados da sessão | público |
+| PATCH | `/senha` | Troca a própria senha, exigindo a atual | autenticado |
+
+### 📅 Agenda (`/api/agenda`)
+
+| Método | Rota | Descrição | Perfil |
+|--------|------|-----------|--------|
+| GET | `/disponibilidade?data=` | Horários livres do dia, já sem os ocupados | ambos |
+| GET | `/disponibilidade/mes?ano=&mes=` | Dias do mês com vaga, para o calendário | ambos |
+| GET | `/dia?data=` | Agenda do veterinário, com os atendimentos | ambos |
+| GET | `/atendimentos/{id}` | Detalhe: profissional, endereço, orientação | ambos |
+| POST | `/agendamentos` | Marca o horário e credita os pontos | tutor |
+| PATCH | `/atendimentos/{id}/cancelar` | Libera o horário e estorna 30 pontos | tutor |
+| PATCH | `/atendimentos/{id}/concluir` | Fecha o atendimento, com diagnóstico e retorno | **doutor** |
+| PATCH | `/atendimentos/{id}/falta` | Não comparecimento: estorna os pontos | **doutor** |
+
+### 💊 Medicamentos (`/api/medicamentos`)
+
+| Método | Rota | Descrição | Perfil |
+|--------|------|-----------|--------|
+| POST | `/` | Prescreve: remédio, intervalo e duração | **doutor** |
+| GET | `/por-pet/{idPet}` | Receitas do pet, com atraso e próxima dose | ambos |
+| POST | `/{id}/doses` | Registra a dose dada; pontua se no horário | tutor |
+| PATCH | `/{id}/concluir` | Tutor confirma o fim do tratamento | tutor |
+| DELETE | `/{id}` | Encerra o tratamento hoje | **doutor** |
+
+### 🧴 Cuidados (`/api/cuidados`)
+
+| Método | Rota | Descrição | Perfil |
+|--------|------|-----------|--------|
+| POST | `/` | Registra pesagem e demais cuidados do dia a dia | tutor |
+
 ### 📜 Histórico (`/api/historico-pontuacao`)
 
 | Método | Rota | Descrição |
@@ -293,12 +361,63 @@ H2 Console: http://localhost:8080/h2-console
 
 ---
 
+## 🔒 Segurança e perfis
+
+A API usa **Spring Security com JWT**, sem sessão no servidor. O token carrega o perfil, e as rotas são separadas por ele.
+
+```mermaid
+graph LR
+    REQ["Requisição"] --> FILTRO["JwtAuthenticationFilter"]
+    FILTRO -->|sem token| E401["401 Autenticação necessária"]
+    FILTRO -->|token válido| REGRAS{"Perfil exigido"}
+    REGRAS -->|ok| CTRL["Controller"]
+    REGRAS -->|perfil errado| E403["403 Acesso negado"]
+```
+
+Há atos que **só o veterinário pratica**, e isso não é preferência de produto: a Resolução CFMV nº 1.321/2020 define a vacinação como ato privativo do médico-veterinário. O mesmo raciocínio vale para prescrever medicamento e concluir atendimento.
+
+| Ação | TUTOR | DOUTOR |
+|------|:-----:|:------:|
+| Cadastrar e editar os próprios pets | ✅ | ✅ |
+| Registrar cuidado do dia a dia e dose | ✅ | — |
+| Marcar e cancelar atendimento | ✅ | — |
+| Aplicar vacina | **403** | ✅ |
+| Prescrever medicamento | **403** | ✅ |
+| Concluir atendimento e registrar falta | **403** | ✅ |
+| Cadastrar tutores e pet shops | **403** | ✅ |
+
+### Contas de demonstração
+
+Criadas por `SeedUsuariosConfig` quando `animed.seed-usuarios=true`. As senhas são geradas com BCrypt em tempo de execução — nenhum hash fica versionado.
+
+| Perfil | E-mail | Senha |
+|--------|--------|-------|
+| Tutor | `tutor@animed.com.br` | `animed123` |
+| Veterinária | `doutor@animed.com.br` | `animed123` |
+
+---
+
+## 🧪 Testes
+
+```bash
+./mvnw test
+```
+
+São **12 testes**, concentrados nas regras que dependem do relógio e que seriam inviáveis de conferir à mão:
+
+| Classe | O que verifica |
+|--------|----------------|
+| `MedicamentoServiceTest` | Dose no horário, dentro da tolerância de 20 min, adiantada e pulada — e que a dose é sempre gravada, pontuando ou não |
+| `AgendaServiceTest` | Falta estorna os pontos; não pode ser registrada antes da hora, sobre atendimento já realizado nem duas vezes |
+
+---
+
 ## ✅ Requisitos Atendidos (Rubrica FIAP)
 
 | Requisito | Status | Onde encontrar |
 |-----------|--------|----------------|
 | Spring Boot + JPA | ✅ | `pom.xml`, todas as entidades |
-| Entidades com relacionamentos | ✅ | `entity/` (7 entidades) |
+| Entidades com relacionamentos | ✅ | `entity/` (10 entidades) |
 | POO + Coesão + Desacoplamento | ✅ | Service/Controller/Repository separados |
 | API RESTful (Richardson nível 3) | ✅ | `TutorController` com HATEOAS |
 | Padrões de projeto | ✅ | Builder, DTO, Repository, Singleton |
@@ -309,9 +428,12 @@ H2 Console: http://localhost:8080/h2-console
 | Busca com parâmetros | ✅ | `/buscar?nome=`, `/por-tutor/{id}`, etc. |
 | Cache | ✅ | `@Cacheable` em TutorService, PetShopService |
 | Tratamento de erros | ✅ | `GlobalExceptionHandler` |
-| DTOs | ✅ | `dto/` (8 DTOs) |
+| DTOs | ✅ | `dto/` (12 DTOs) |
 | Swagger | ✅ | http://localhost:8080/swagger-ui.html |
 | Postman Collection | ✅ | `postman/Animed-API.postman_collection.json` |
+| Autenticação e autorização | ✅ | Spring Security + JWT, rotas por perfil |
+| Testes automatizados | ✅ | `src/test/`, 12 testes com JUnit 5 e Mockito |
+| Migrations versionadas | ✅ | `db/migration/`, V1 a V12 (Flyway) |
 
 ---
 
