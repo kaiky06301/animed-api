@@ -19,9 +19,13 @@ buildNumber.properties
 *.nar
 hs_err_pid*
 
-# ===== Spring Boot =====
+# ===== Spring Boot / secrets =====
 *.original
 application-local.properties
+.env
+.env.local
+*.pfx
+*.pem
 
 # ===== IDEs =====
 # IntelliJ IDEA

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Animed — Arquitetura Sprint 3 (ACR + ACI)</title>
+  <style>
+    :root { --pink:#ed145b; --ink:#111; --muted:#555; --line:#ccc; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; background: #f3f3f3; color: var(--ink); }
+    header { border-top: 8px solid var(--pink); padding: 24px 40px 8px; }
+    h1 { margin: 0; font-size: 26px; }
+    header p { color: var(--muted); margin: 8px 0 0; }
+    .wrap { padding: 16px 40px 40px; }
+    .canvas { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 28px; }
+    .lane { display: flex; gap: 20px; align-items: stretch; justify-content: center; flex-wrap: wrap; margin: 18px 0; }
+    .box { width: 210px; border: 2px solid #111; border-radius: 10px; padding: 14px; background: #fff; }
+    .box h3 { margin: 0 0 6px; font-size: 15px; }
+    .box p { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.4; }
+    .git { background: #111; color: #fff; border-color: #111; }
+    .git p { color: #ddd; }
+    .acr { background: #fff3f7; border-color: var(--pink); }
+    .api { background: #eef6ff; border-color: #1d4ed8; }
+    .ora { background: #fff7ed; border-color: #c2410c; }
+    .user { background: #111; color: #fff; }
+    .user p { color: #ddd; }
+    .arrow { align-self: center; font-size: 28px; color: var(--pink); font-weight: 700; }
+    .caption { text-align: center; font-size: 13px; color: var(--muted); margin: 4px 0 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; }
+    th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: #111; color: #fff; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Animed — arquitetura na Azure (ACR + ACI)</h1>
+    <p>Sprint 3 · DevOps Tools &amp; Cloud Computing · opção 1: tudo em container</p>
+  </header>
+  <div class="wrap">
+    <div class="canvas">
+      <div class="lane">
+        <div class="box git">
+          <h3>GitHub</h3>
+          <p>Código-fonte, Dockerfile, scripts Azure CLI e README.</p>
+        </div>
+        <div class="arrow">→</div>
+        <div class="box acr">
+          <h3>Azure Container Registry</h3>
+          <p>Guarda as imagens <em>animed-api:1.0</em> e <em>oracle-xe:21</em>.</p>
+        </div>
+      </div>
+      <p class="caption">docker build / az acr build → docker push → ACR</p>
+
+      <div class="lane">
+        <div class="box user">
+          <h3>Tutor / veterinário</h3>
+          <p>Acessa o Swagger da API na nuvem e executa o CRUD.</p>
+        </div>
+        <div class="arrow">→</div>
+        <div class="box api">
+          <h3>ACI · Animed API</h3>
+          <p>Container Java 17, porta 8080, processo com usuário sem root.</p>
+        </div>
+        <div class="arrow">→</div>
+        <div class="box ora">
+          <h3>ACI · Oracle XE</h3>
+          <p>Banco em container, porta 1521. Persiste Tutor e Pet.</p>
+        </div>
+      </div>
+      <p class="caption">As duas instâncias puxam a imagem do ACR. Senha e JDBC vão por variável de ambiente.</p>
+
+      <table>
+        <tr><th>Recurso</th><th>Papel nesta solução</th></tr>
+        <tr><td>GitHub</td><td>Origem do clone no vídeo e dos scripts de deploy.</td></tr>
+        <tr><td>Azure CLI</td><td>Cria o resource group, o ACR e os dois Container Instances. Nada pelo Portal.</td></tr>
+        <tr><td>ACR</td><td>Registro privado das imagens Docker da API e do Oracle.</td></tr>
+        <tr><td>ACI da API</td><td>Executa o container da aplicação. Expõe Swagger e as rotas REST.</td></tr>
+        <tr><td>ACI Oracle</td><td>Executa o container do banco. É aqui que o SELECT do CRUD aparece.</td></tr>
+        <tr><td>Flyway</td><td>Na primeira subida aplica o DDL e o seed (script_bd.sql / migrations).</td></tr>
+      </table>
+    </div>
+  </div>
+</body>
+</html>

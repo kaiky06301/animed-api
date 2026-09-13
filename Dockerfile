@@ -1,36 +1,29 @@
 # =====================================================
-# Animed - Dockerfile multi-stage
+# Animed API — imagem da aplicação (não-root)
+# Opção 1 da Sprint 3: ACR guarda a imagem / ACI executa
 # =====================================================
 
-# === Stage 1: Build ===
 FROM maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /app
-
-# Copia POM e baixa dependências (cache de camadas)
 COPY pom.xml .
-RUN mvn dependency:go-offline -B
-
-# Copia código e empacota
 COPY src ./src
 RUN mvn clean package -DskipTests -B
 
-# === Stage 2: Runtime ===
 FROM bellsoft/liberica-openjre-alpine:17
 WORKDIR /app
 
-# Cria usuário não-root (requisito DevOps FIAP)
-RUN addgroup -S clyvo && adduser -S clyvo -G clyvo
+RUN apk add --no-cache wget \
+    && addgroup -S animed \
+    && adduser -S animed -G animed
 
-# Copia JAR do stage de build
-COPY --from=build /app/target/*.jar app.jar
-RUN chown clyvo:clyvo app.jar
+COPY --from=build /app/target/animed-api.jar app.jar
+RUN chown animed:animed app.jar
 
-USER clyvo
+USER animed
 
 EXPOSE 8080
 
-# Healthcheck
-HEALTHCHECK --interval=30s --timeout=3s --start-period=60s \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=90s \
   CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
 
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

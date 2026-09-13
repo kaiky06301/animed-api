@@ -1,8 +1,7 @@
-version: '3.8'
-
 # =====================================================
-# Animed - docker-compose para DevOps
-# Inclui app + Oracle XE
+# Animed — Compose local (app + Oracle, ambos container)
+# Na nuvem o mesmo desenho sobe no ACI (ver scripts/).
+# Credenciais vêm do arquivo .env (não versionado).
 # =====================================================
 
 services:
@@ -10,10 +9,10 @@ services:
     image: gvenzl/oracle-xe:21-slim
     container_name: animed-oracle
     environment:
-      ORACLE_PASSWORD: ClyvoVet2026
-      ORACLE_DATABASE: CLYVOVET
-      APP_USER: clyvo
-      APP_USER_PASSWORD: clyvo123
+      ORACLE_PASSWORD: ${ORACLE_PASSWORD}
+      ORACLE_DATABASE: ${ORACLE_DATABASE:-CLYVOVET}
+      APP_USER: ${APP_USER:-clyvo}
+      APP_USER_PASSWORD: ${APP_USER_PASSWORD}
     ports:
       - "1521:1521"
     volumes:
@@ -22,25 +21,26 @@ services:
       test: ["CMD", "healthcheck.sh"]
       interval: 30s
       timeout: 10s
-      retries: 10
+      retries: 12
     networks:
       - animed-network
 
   animed-api:
     build: .
+    image: animed-api:1.0
     container_name: animed-api
     depends_on:
       oracle-db:
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: oracle
-      SPRING_DATASOURCE_URL: jdbc:oracle:thin:@oracle-db:1521/CLYVOVET
-      SPRING_DATASOURCE_USERNAME: clyvo
-      SPRING_DATASOURCE_PASSWORD: clyvo123
-      SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA: CLYVO
+      SPRING_DATASOURCE_URL: jdbc:oracle:thin:@//oracle-db:1521/CLYVOVET
+      SPRING_DATASOURCE_USERNAME: ${APP_USER:-clyvo}
+      SPRING_DATASOURCE_PASSWORD: ${APP_USER_PASSWORD}
+      ORACLE_SCHEMA: ${ORACLE_SCHEMA:-CLYVO}
+      ANIMED_JWT_SECRET: ${ANIMED_JWT_SECRET}
     ports:
       - "8080:8080"
-    restart: unless-stopped
     networks:
       - animed-network
 
