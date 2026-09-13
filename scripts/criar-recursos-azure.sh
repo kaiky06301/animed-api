@@ -40,8 +40,11 @@ ACR_PASS=$(az acr credential show --name "$ACR" --query passwords[0].value -o ts
 echo "==> Importa imagem do Oracle para o ACR"
 az acr import --name "$ACR" --source docker.io/gvenzl/oracle-xe:21-slim --image oracle-xe:21 --force
 
-echo "==> Build + push da API no ACR"
-az acr build --registry "$ACR" --image animed-api:1.0 .
+echo "==> Build + push da API no ACR (docker; ACR Tasks e bloqueado no Azure for Students)"
+az acr login --name "$ACR"
+docker build -t animed-api:1.0 .
+docker tag animed-api:1.0 "${ACR_SERVER}/animed-api:1.0"
+docker push "${ACR_SERVER}/animed-api:1.0"
 
 echo "==> ACI do Oracle (container do banco)"
 az container create \
