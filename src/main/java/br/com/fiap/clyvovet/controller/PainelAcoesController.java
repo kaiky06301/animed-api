@@ -1,10 +1,13 @@
 package br.com.fiap.clyvovet.controller;
 
 import br.com.fiap.clyvovet.dto.AgendaDTO;
+import br.com.fiap.clyvovet.dto.auth.RegistroRequest;
+import br.com.fiap.clyvovet.enums.Role;
 import br.com.fiap.clyvovet.entity.Usuario;
 import br.com.fiap.clyvovet.exception.BusinessException;
 import br.com.fiap.clyvovet.repository.UsuarioRepository;
 import br.com.fiap.clyvovet.service.AgendaService;
+import br.com.fiap.clyvovet.service.AuthService;
 import br.com.fiap.clyvovet.service.PetService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -41,6 +44,7 @@ public class PainelAcoesController {
     private static final int PETS_POR_PAGINA = 20;
 
     private final AgendaService agendaService;
+    private final AuthService authService;
     private final PetService petService;
     private final UsuarioRepository usuarioRepository;
 
@@ -167,6 +171,53 @@ public class PainelAcoesController {
         }
 
         return "redirect:/painel/veterinario";
+    }
+
+    // ------------------------------------------------------------------
+    // Cadastro de pessoas, feito pela clínica
+    // ------------------------------------------------------------------
+
+    /** Formulário de cadastro de tutor ou de veterinário. */
+    @GetMapping("/painel/veterinario/cadastrar")
+    public String formularioDeCadastro(@RequestParam(defaultValue = "TUTOR") String perfil,
+                                       @AuthenticationPrincipal UserDetails autenticado,
+                                       Model model) {
+        model.addAttribute("perfil", perfil);
+        model.addAttribute("nome", usuarioLogado(autenticado).getNome());
+        return "cadastrar-pessoa";
+    }
+
+    /**
+     * Cria a conta de um tutor ou de outro veterinário.
+     *
+     * Quem cadastra é a clínica: o tutor chega ao balcão, e é a recepção que
+     * abre o acesso dele. Cadastrar veterinário exige estar autenticado como
+     * veterinário — a regra vive no AuthService e vale também para a API.
+     */
+    @PostMapping("/painel/veterinario/cadastrar")
+    public String cadastrar(@RequestParam String nome,
+                            @RequestParam String email,
+                            @RequestParam String senha,
+                            @RequestParam String cpf,
+                            @RequestParam(required = false) String telefone,
+                            @RequestParam String perfil,
+                            RedirectAttributes redirecionamento) {
+        try {
+            Role papel = Role.valueOf(perfil);
+
+            authService.registrar(new RegistroRequest(
+                    nome, email, senha, cpf, telefone, papel));
+
+            String tipo = papel == Role.DOUTOR ? "Veterinário" : "Tutor";
+            redirecionamento.addFlashAttribute("sucesso",
+                    tipo + " " + nome + " cadastrado. O acesso já está liberado.");
+
+            return "redirect:/painel/veterinario/pacientes";
+
+        } catch (BusinessException excecao) {
+            redirecionamento.addFlashAttribute("erro", excecao.getMessage());
+            return "redirect:/painel/veterinario/cadastrar?perfil=" + perfil;
+        }
     }
 
     private Usuario usuarioLogado(UserDetails autenticado) {

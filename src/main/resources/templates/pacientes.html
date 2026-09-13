@@ -13,6 +13,7 @@
     <nav>
         <a th:href="@{/painel/veterinario}">Agenda</a>
         <a th:href="@{/painel/veterinario/pacientes}" class="ativo">Pacientes</a>
+        <a th:href="@{/painel/veterinario/cadastrar}">Cadastrar</a>
     </nav>
     <div class="usuario">
         <span th:text="${nome}">Veterinário</span>
@@ -28,6 +29,9 @@
     <p style="color: var(--texto-secundario); font-size: 14px; margin-top: 4px">
         <span th:text="${#lists.size(pets)}">0</span> na clínica
     </p>
+
+    <div class="aviso ok" th:if="${sucesso}" th:text="${sucesso}" style="margin-top: 16px"></div>
+    <div class="aviso erro" th:if="${erro}" th:text="${erro}" style="margin-top: 16px"></div>
 
     <form method="get" th:action="@{/painel/veterinario/pacientes}"
           style="display: flex; gap: 8px; margin: 20px 0">
