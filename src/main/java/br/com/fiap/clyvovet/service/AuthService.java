@@ -14,6 +14,7 @@ import br.com.fiap.clyvovet.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.Authentication;
@@ -133,6 +134,11 @@ public class AuthService {
                     new UsernamePasswordAuthenticationToken(request.email(), request.senha()));
         } catch (BadCredentialsException e) {
             throw new BusinessException("E-mail ou senha inválidos");
+        } catch (DisabledException e) {
+            // Acesso desligado pela clínica: a pessoa precisa saber que a conta
+            // existe e está suspensa, e não ficar tentando a senha de novo.
+            throw new BusinessException(
+                    "Este acesso está desativado. Procure a clínica.");
         }
 
         Usuario usuario = usuarioRepository.findByEmail(request.email())

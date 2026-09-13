@@ -66,6 +66,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/api/tutores/**").hasRole("DOUTOR")
                 .requestMatchers("/api/petshops/**").hasRole("DOUTOR")
 
+                // Quem entra no sistema é decisão da clínica
+                .requestMatchers("/api/usuarios/**").hasRole("DOUTOR")
+
                 // Registro clínico é responsabilidade do veterinário: o tutor
                 // acompanha o histórico, mas não o cria nem o altera.
                 .requestMatchers(HttpMethod.POST,   "/api/vacinas/**").hasRole("DOUTOR")
