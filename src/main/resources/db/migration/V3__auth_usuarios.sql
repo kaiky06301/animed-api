@@ -26,4 +26,6 @@ COMMENT ON COLUMN TB_USUARIO.SENHA IS 'Hash BCrypt da senha - nunca em texto pur
 COMMENT ON COLUMN TB_USUARIO.ROLE  IS 'Perfil de acesso: TUTOR ou DOUTOR';
 COMMENT ON COLUMN TB_USUARIO.ID_TUTOR IS 'Vinculo com TB_TUTOR (nulo quando o perfil e DOUTOR)';
 
-CREATE INDEX IDX_USUARIO_EMAIL ON TB_USUARIO(EMAIL);
+-- Nao ha CREATE INDEX em EMAIL: a constraint UK_USUARIO_EMAIL ja cria um
+-- indice unico nessa coluna. No Oracle, indexar a mesma lista de colunas
+-- outra vez levanta ORA-01408 e derruba a migration.
