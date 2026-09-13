@@ -16,6 +16,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -61,11 +63,43 @@ public class AuthService {
     }
 
     @Transactional
+    /**
+     * Decide quem pode criar cada tipo de conta.
+     *
+     * O cadastro é aberto para que o tutor crie a própria conta — é o que o
+     * aplicativo oferece na tela de criar conta. Mas conta de veterinário dá
+     * acesso a ato clínico: registrar vacina, prescrever e concluir
+     * atendimento. Se o cadastro aberto aceitasse o perfil vindo do corpo da
+     * requisição, qualquer pessoa com o endereço da API viraria veterinário da
+     * clínica.
+     *
+     * Por isso: DOUTOR só é criado por quem já é DOUTOR.
+     */
+    private void exigirPermissaoParaCriar(Role perfilPedido) {
+        if (perfilPedido != Role.DOUTOR) {
+            return;
+        }
+
+        Authentication autenticacao = SecurityContextHolder.getContext().getAuthentication();
+
+        boolean ehVeterinarioAutenticado = autenticacao != null
+                && autenticacao.isAuthenticated()
+                && autenticacao.getAuthorities().stream()
+                        .anyMatch(a -> "ROLE_DOUTOR".equals(a.getAuthority()));
+
+        if (!ehVeterinarioAutenticado) {
+            throw new BusinessException(
+                    "Apenas um veterinário autenticado pode cadastrar outro veterinário");
+        }
+    }
+
     public AuthResponse registrar(RegistroRequest request) {
 
         if (usuarioRepository.existsByEmail(request.email())) {
             throw new BusinessException("Já existe uma conta com este e-mail");
         }
+
+        exigirPermissaoParaCriar(request.role());
 
         Tutor tutor = null;
 
