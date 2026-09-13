@@ -20,6 +20,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -258,6 +259,37 @@ public class AgendaService {
      * no mesmo horário em agendas diferentes — mas quem leva os dois é a
      * mesma pessoa, e ela não consegue estar em duas salas ao mesmo tempo.
      */
+    /**
+     * Não se resolve atendimento que ainda não começou.
+     *
+     * Concluir significa que o animal foi atendido; registrar falta significa
+     * que a hora passou e ninguém apareceu. Nenhuma das duas afirmações pode
+     * ser feita sobre um horário no futuro — e as duas mexem na pontuação do
+     * tutor, então errar aqui tem consequência.
+     */
+    private void exigirQueOHorarioJaTenhaChegado(Consulta consulta, String acao) {
+        if (consulta.getDataHora().isAfter(LocalDateTime.now())) {
+            throw new BusinessException(
+                    "Este atendimento é " + quandoEm(consulta.getDataHora())
+                            + " e ainda não pode ser " + acao + ".");
+        }
+    }
+
+    /** Descreve o momento do atendimento em linguagem de recepção. */
+    private String quandoEm(LocalDateTime dataHora) {
+        LocalDate dia = dataHora.toLocalDate();
+        LocalDate hoje = LocalDate.now();
+
+        if (dia.equals(hoje)) {
+            return "hoje às " + dataHora.toLocalTime();
+        }
+        if (dia.equals(hoje.plusDays(1))) {
+            return "amanhã às " + dataHora.toLocalTime();
+        }
+        return "em " + dia.format(DateTimeFormatter.ofPattern("dd/MM"))
+                + " às " + dataHora.toLocalTime();
+    }
+
     private void exigirTutorLivreNoHorario(Tutor tutor, LocalDateTime quando) {
         consultaRepository.findDoTutorNoHorario(tutor.getId(), quando).stream()
                 .filter(c -> c.getStatus() == StatusConsulta.AGENDADA)
@@ -408,9 +440,7 @@ public class AgendaService {
                     "Só um atendimento ainda marcado pode ser dado como não comparecido");
         }
 
-        if (consulta.getDataHora().isAfter(LocalDateTime.now())) {
-            throw new BusinessException("O horário deste atendimento ainda não chegou");
-        }
+        exigirQueOHorarioJaTenhaChegado(consulta, "dado como falta");
 
         consulta.setStatus(StatusConsulta.NAO_COMPARECEU);
 
@@ -450,6 +480,8 @@ public class AgendaService {
         if (consulta.getStatus() == StatusConsulta.CANCELADA) {
             throw new BusinessException("Um atendimento cancelado não pode ser concluído");
         }
+
+        exigirQueOHorarioJaTenhaChegado(consulta, "concluído");
 
         consulta.setStatus(StatusConsulta.REALIZADA);
 
