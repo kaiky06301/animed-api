@@ -43,254 +43,320 @@ CRUD completo nas duas tabelas: `POST/GET/PUT/DELETE` em `/api/tutores` e `/api/
 | Banco (nuvem) | Oracle XE 21 **em container** (ACI) |
 | Imagens | Azure Container Registry |
 | Execução | Azure Container Instance (API + Oracle) |
-| Build | Docker + Azure CLI |
+| Build da imagem | kaniko rodando como container no ACI |
+| Provisionamento | Azure CLI (nenhum recurso criado pelo Portal) |
 
-H2 existe **somente** para `mvn test` na máquina. Entrega = Oracle no ACI.
+H2 existe **somente** para `mvn test` na máquina. A entrega roda em Oracle no ACI.
 
-> Azure for Students **bloqueia ACR Tasks** (`az acr build`). O caminho oficial desta entrega é `docker build` + `docker push`.
+### Por que o build não usa `docker build`
+
+Duas restrições reais deste ambiente:
+
+1. **ACR Tasks é bloqueado** na subscription Azure for Students da FIAP — `az acr build` devolve `TasksOperationsNotAllowed`.
+2. **Docker Desktop não está instalado** nas máquinas da equipe.
+
+A solução é o **kaniko**: um construtor de imagens que roda como container comum. Ele sobe num ACI, clona este repositório do GitHub, executa o `Dockerfile` e dá `push` da imagem no ACR — sem daemon Docker em lugar nenhum. O build inteiro leva cerca de 70 segundos.
+
+O `Dockerfile` continua sendo o mesmo e segue valendo com `docker build` para quem tiver Docker (veja `scripts/docker-build-push.sh`).
 
 ---
 
 ## 4. Arquitetura (recursos e fluxo)
 
-Abra [docs/diagrama-arquitetura.html](docs/diagrama-arquitetura.html) e tire o print.
+Abra **[docs/diagrama-arquitetura.html](docs/diagrama-arquitetura.html)** no navegador — é o desenho da arquitetura com os recursos, o fluxo numerado e a legenda.
 
-```
- Desenvolvedor                 Azure
- ┌───────────┐   push    ┌──────────┐
- │  GitHub   │──────────▶│   ACR    │  imagens: animed-api e oracle-xe
- └───────────┘           └────┬─────┘
-                              │ pull
-                     ┌────────┴────────┐
-                     ▼                 ▼
-              ┌────────────┐    ┌─────────────┐
-              │ ACI da API │───▶│ ACI Oracle  │
-              │ (não-root) │    │ porta 1521  │
-              └─────┬──────┘    └─────────────┘
-                    │
-              Tutor / Vet (Swagger e /login :8080)
-```
+| Recurso | Papel nesta solução |
+|---------|---------------------|
+| GitHub | Código-fonte, `Dockerfile` e scripts. É de onde o kaniko lê o contexto do build e de onde parte o clone no vídeo. |
+| Azure CLI | Cria resource group, ACR e os Container Instances. Nada pelo Portal. |
+| Azure Container Registry | Guarda as duas imagens: `animed-api:1.0` e `oracle-xe:21`. |
+| ACI `aci-kaniko-build` | Container temporário que compila a imagem da API e some depois. |
+| ACI `aci-animed-api` | Executa a aplicação com o usuário `animed` (não-root), porta 8080. |
+| ACI `aci-animed-oracle` | Executa o banco Oracle XE em container, porta 1521. |
+| Flyway | Na primeira subida da API aplica as 12 migrations que criam o schema. |
 
-- **GitHub** — código e este README (o vídeo clona daqui).
-- **ACR** — guarda as duas imagens Docker.
-- **ACI da API** — sobe o container da Animed com usuário `animed` (não é root).
-- **ACI Oracle** — banco em container na nuvem. A API grava Tutor e Pet aqui.
-- Senha, JDBC e JWT entram por **variável de ambiente**, nunca pelo código.
+Senha do banco e segredo JWT entram por **variável de ambiente protegida** (`--secure-environment-variables`): não aparecem no código nem no `az container show`.
 
 ---
 
-## 5. Como testar e publicar (siga esta ordem no vídeo)
+## 5. Como publicar e testar (siga esta ordem no vídeo)
 
 ### 5.1 Pré-requisitos
 
-- Git, Java 17, Azure CLI (`az login`)
-- Docker Desktop (obrigatório neste subscription: o `az acr build` é bloqueado)
-- Conta Azure com permissão para criar Resource Group, ACR e ACI
+- Git e Azure CLI (`az login`)
+- Uma conta Azure com permissão para criar Resource Group, ACR e ACI
+- **Não precisa de Docker** — o build acontece dentro da Azure
 
-### 5.2 Clonar o repositório (obrigatório)
+Opcional, só para conferir o banco por fora: SQLcl, SQL Developer ou DBeaver.
+
+### 5.2 Clonar o repositório (começar o vídeo por aqui)
 
 ```bash
 git clone https://github.com/kaiky06301/animed-api.git
 cd animed-api
 ```
 
-### 5.3 Rodar os testes da solução
-
-Windows:
-
-```bat
-mvnw.cmd test
-```
-
-Linux / Mac:
-
-```bash
-./mvnw test
-```
-
-Os testes JUnit sobem com H2 em memória. Eles **não** usam o Oracle da nuvem.
-
-### 5.4 Login na Azure e senhas (não vão para o Git)
+### 5.3 Entrar na Azure
 
 ```bash
 az login
 az account show
 ```
 
-```bash
-export ORACLE_PASSWORD='TroqueEstaSenha1'
-export APP_USER_PASSWORD='TroqueEstaSenha1'
-export ANIMED_JWT_SECRET='animed-segredo-base64-nao-commitar'
-export ACR_SERVER='acranimedXXXX.azurecr.io'
-```
+### 5.4 Definir as senhas (nunca vão para o Git)
 
-PowerShell:
+O segredo JWT **precisa ser Base64 puro**. A aplicação faz `Decoders.BASE64.decode()`: um valor com `-` ou `_` derruba a API na subida com `Illegal base64 character`.
+
+PowerShell (Windows):
 
 ```powershell
-az login
-$env:ORACLE_PASSWORD = 'TroqueEstaSenha1'
-$env:APP_USER_PASSWORD = 'TroqueEstaSenha1'
-$env:ANIMED_JWT_SECRET = 'animed-segredo-base64-nao-commitar'
-$env:ACR_SERVER = 'acranimedXXXX.azurecr.io'
+$env:ORACLE_PASSWORD   = 'Animed#2026Fiap'
+$env:APP_USER_PASSWORD = 'Animed#2026Fiap'
+$b = New-Object byte[] 48
+[Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b)
+$env:ANIMED_JWT_SECRET = [Convert]::ToBase64String($b)
 ```
 
-### 5.5 Criar os recursos na nuvem (tudo via Azure CLI)
+Bash (Linux / Mac / Cloud Shell):
 
-**Caminho A — um script só:**
+```bash
+export ORACLE_PASSWORD='Animed#2026Fiap'
+export APP_USER_PASSWORD='Animed#2026Fiap'
+export ANIMED_JWT_SECRET="$(openssl rand -base64 48)"
+```
+
+### 5.5 Criar tudo com um script (Azure CLI do começo ao fim)
 
 ```powershell
 .\scripts\criar-recursos-azure.ps1
 ```
 
-Cloud Shell / bash:
-
 ```bash
 bash scripts/criar-recursos-azure.sh
 ```
 
-**Caminho B — comandos um a um.** Troque `XXXX` por um número único:
+O script executa, em ordem: registro dos providers → resource group → ACR → import da imagem do Oracle → build da imagem da API com kaniko → ACI do banco → espera o Oracle aceitar conexão → ACI da aplicação → espera o health responder `UP`. No fim ele imprime os endereços.
+
+### 5.6 Os mesmos passos, comando a comando
+
+Para mostrar cada recurso nascendo na câmera, sem o script:
 
 ```bash
+# 1. Resource group
 az group create --name rg-animed-sprint3 --location brazilsouth
 
-az acr create --resource-group rg-animed-sprint3 --name acranimedXXXX --sku Basic --admin-enabled true
+# 2. Container Registry
+az acr create --resource-group rg-animed-sprint3 --name acranimed566067 \
+  --sku Basic --admin-enabled true --location brazilsouth
 
-az acr import --name acranimedXXXX --source docker.io/gvenzl/oracle-xe:21-slim --image oracle-xe:21 --force
+# 3. Imagem do Oracle vai para o ACR
+az acr import --name acranimed566067 \
+  --source docker.io/gvenzl/oracle-xe:21-slim --image oracle-xe:21 --force
 
-az acr login --name acranimedXXXX
-docker build -t animed-api:1.0 .
-docker tag animed-api:1.0 acranimedXXXX.azurecr.io/animed-api:1.0
-docker push acranimedXXXX.azurecr.io/animed-api:1.0
+# 4. Build da imagem da API (kaniko dentro da Azure, sem Docker local)
+export ACR=acranimed566067
+export RG=rg-animed-sprint3
+bash scripts/build-imagem-kaniko.sh
+
+# 5. Conferir as duas imagens no registro
+az acr repository list --name acranimed566067 -o table
 ```
 
-Ou: `export ACR_SERVER=acranimedXXXX.azurecr.io` e `bash scripts/docker-build-push.sh`.
-
-Subir o banco e a API no ACI (usuário/senha do ACR: `az acr credential show --name acranimedXXXX`):
-
 ```bash
+# 6. Container do banco
+ACR_USER=$(az acr credential show --name acranimed566067 --query username -o tsv)
+ACR_PASS=$(az acr credential show --name acranimed566067 --query "passwords[0].value" -o tsv)
+
 az container create \
   --resource-group rg-animed-sprint3 \
   --name aci-animed-oracle \
-  --image acranimedXXXX.azurecr.io/oracle-xe:21 \
-  --registry-login-server acranimedXXXX.azurecr.io \
-  --registry-username <usuario-acr> \
-  --registry-password <senha-acr> \
-  --cpu 2 --memory 3.5 --ports 1521 --os-type Linux \
-  --dns-name-label animed-oracle-XXXX \
-  --environment-variables \
-    ORACLE_PASSWORD=$ORACLE_PASSWORD \
-    ORACLE_DATABASE=CLYVOVET \
-    APP_USER=clyvo \
-    APP_USER_PASSWORD=$APP_USER_PASSWORD
+  --image acranimed566067.azurecr.io/oracle-xe:21 \
+  --registry-login-server acranimed566067.azurecr.io \
+  --registry-username "$ACR_USER" --registry-password "$ACR_PASS" \
+  --cpu 2 --memory 4 --ports 1521 --os-type Linux \
+  --dns-name-label animed-oracle-566067 --restart-policy OnFailure \
+  --environment-variables ORACLE_DATABASE=CLYVOVET APP_USER=clyvo \
+  --secure-environment-variables \
+    ORACLE_PASSWORD="$ORACLE_PASSWORD" \
+    APP_USER_PASSWORD="$APP_USER_PASSWORD"
+```
 
-# Espere ~4 minutos o Oracle ficar pronto. Depois:
+Espere o Oracle abrir a porta 1521 (leva alguns minutos na primeira vez — ele cria o banco e o usuário `clyvo`). Só então:
 
+```bash
+# 7. Container da aplicação
 az container create \
   --resource-group rg-animed-sprint3 \
   --name aci-animed-api \
-  --image acranimedXXXX.azurecr.io/animed-api:1.0 \
-  --registry-login-server acranimedXXXX.azurecr.io \
-  --registry-username <usuario-acr> \
-  --registry-password <senha-acr> \
-  --cpu 1 --memory 1.5 --ports 8080 --os-type Linux \
-  --dns-name-label animed-api-XXXX \
+  --image acranimed566067.azurecr.io/animed-api:1.0 \
+  --registry-login-server acranimed566067.azurecr.io \
+  --registry-username "$ACR_USER" --registry-password "$ACR_PASS" \
+  --cpu 1 --memory 2 --ports 8080 --os-type Linux \
+  --dns-name-label animed-api-566067 --restart-policy OnFailure \
   --environment-variables \
     SPRING_PROFILES_ACTIVE=oracle \
-    SPRING_DATASOURCE_URL=jdbc:oracle:thin:@//animed-oracle-XXXX.brazilsouth.azurecontainer.io:1521/CLYVOVET \
+    SPRING_DATASOURCE_URL="jdbc:oracle:thin:@//animed-oracle-566067.brazilsouth.azurecontainer.io:1521/CLYVOVET" \
     SPRING_DATASOURCE_USERNAME=clyvo \
-    SPRING_DATASOURCE_PASSWORD=$APP_USER_PASSWORD \
     ORACLE_SCHEMA=CLYVO \
-    ANIMED_JWT_SECRET=$ANIMED_JWT_SECRET
+  --secure-environment-variables \
+    SPRING_DATASOURCE_PASSWORD="$APP_USER_PASSWORD" \
+    ANIMED_JWT_SECRET="$ANIMED_JWT_SECRET"
 ```
 
-O container da API **não roda como root**: o `Dockerfile` cria o usuário `animed` e usa `USER animed`.
+> A cota do Azure for Students é de **6 cores** por região. Oracle (2) + API (1) + kaniko (2) cabe, mas o container do build precisa ser removido antes de subir mais coisa — os scripts já fazem isso.
 
-### 5.6 Conferir os recursos no Portal
-
-No Portal do Azure, abra o grupo `rg-animed-sprint3` e mostre:
-
-- Azure Container Registry com as imagens `animed-api:1.0` e `oracle-xe:21`
-- Container Instance `aci-animed-oracle` (Running)
-- Container Instance `aci-animed-api` (Running)
-
-```
-http://<fqdn-da-api>:8080/login
-http://<fqdn-da-api>:8080/swagger-ui.html
-http://<fqdn-da-api>:8080/actuator/health
-```
+### 5.7 Conferir o que subiu
 
 ```bash
+az acr repository list --name acranimed566067 -o table
+az container list --resource-group rg-animed-sprint3 -o table
 az container show -g rg-animed-sprint3 -n aci-animed-api --query ipAddress.fqdn -o tsv
-az container show -g rg-animed-sprint3 -n aci-animed-oracle --query ipAddress.fqdn -o tsv
+az container logs -g rg-animed-sprint3 -n aci-animed-api
 ```
 
-### 5.7 CRUD + evidência no banco (sem corte no vídeo)
+No log da API aparece `Successfully applied 12 migrations to schema "CLYVO"` — é o Flyway criando o banco.
 
-Contas de demo (criadas na subida da API):
+Endereços da aplicação publicada:
+
+```
+http://animed-api-566067.brazilsouth.azurecontainer.io:8080/login
+http://animed-api-566067.brazilsouth.azurecontainer.io:8080/swagger-ui.html
+http://animed-api-566067.brazilsouth.azurecontainer.io:8080/actuator/health
+```
+
+O container da aplicação **não roda como root**: o `Dockerfile` cria o usuário `animed` e declara `USER animed`. Para evidenciar:
+
+```bash
+az container exec -g rg-animed-sprint3 -n aci-animed-api --exec-command "id"
+# uid=100(animed) gid=101(animed)
+```
+
+---
+
+## 6. CRUD com evidência no banco (item 9.3 da correção)
+
+Duas tabelas do núcleo, relacionadas entre si: **TB_TUTOR** (1) → **TB_PET** (N).
+
+Contas criadas na subida da API:
 
 | Perfil | E-mail | Senha |
 |--------|--------|--------|
 | Veterinário | doutor@animed.com.br | animed123 |
 | Tutor | tutor@animed.com.br | animed123 |
 
-1. Abra `/login` **ou** o Swagger (`POST /api/auth/login` com o doutor).
-2. **Inserir** um tutor (`POST /api/tutores`) e um pet (`POST /api/pets`) ligado a esse tutor.
-3. No Oracle, rode o `SELECT` e mostre as linhas novas.
-4. **Atualizar** tutor e pet (`PUT`). SELECT de novo.
-5. **Consultar** (`GET` e SELECT).
-6. **Excluir** o pet e o tutor de teste (`DELETE`). SELECT mostrando que sumiram.
-
-SELECT no container do Oracle:
+### 6.1 Abrir o SELECT no banco em container
 
 ```bash
-az container exec -g rg-animed-sprint3 -n aci-animed-oracle --exec-command \
-  "sqlplus -s clyvo/${APP_USER_PASSWORD}@//localhost:1521/CLYVOVET"
+az container exec -g rg-animed-sprint3 -n aci-animed-oracle \
+  --exec-command "sqlplus -s clyvo/$APP_USER_PASSWORD@//localhost:1521/CLYVOVET"
 ```
+
+Ou conecte SQLcl / SQL Developer / DBeaver em:
+
+```
+host    animed-oracle-566067.brazilsouth.azurecontainer.io
+porta   1521
+service CLYVOVET
+usuário clyvo
+```
+
+Os dois SELECTs usados o tempo todo:
 
 ```sql
-SELECT ID_TUTOR, NOME, EMAIL, NIVEL FROM TB_TUTOR ORDER BY ID_TUTOR;
-SELECT ID_PET, NOME, ESPECIE, RACA, ID_TUTOR FROM TB_PET ORDER BY ID_PET;
+SELECT ID_TUTOR, NOME, EMAIL, TELEFONE FROM TB_TUTOR ORDER BY ID_TUTOR;
+SELECT ID_PET, NOME, ESPECIE, RACA, PESO_KG, ID_TUTOR FROM TB_PET ORDER BY ID_PET;
 ```
 
-Ou conecte o DBeaver/SQL Developer no FQDN do ACI Oracle, porta `1521`, service `CLYVOVET`, usuário `clyvo`.
+### 6.2 Sequência a executar (sem cortes no vídeo)
 
-O Flyway já aplica as migrations e o seed (Marina, Carlos, Thor, Mia, …) na primeira subida. Isso cobre as **2+ linhas significativas** nas tabelas-núcleo. O CRUD do vídeo cria/edita/apaga **outras** linhas para a câmera.
+Deixe o Swagger (ou o painel em `/login`) de um lado e o SELECT do outro. A cada operação, rode o SELECT de novo.
+
+| # | Operação | Onde | O que mostrar no banco |
+|---|----------|------|------------------------|
+| 1 | `POST /api/auth/login` com o doutor | Swagger | — (pega o token) |
+| 2 | **Consulta**: `GET /api/tutores` e `GET /api/pets` | Swagger | SELECT nas duas tabelas: as linhas do seed |
+| 3 | **Inclusão**: `POST /api/tutores` | Swagger | SELECT em TB_TUTOR: a linha nova apareceu |
+| 4 | **Inclusão**: `POST /api/pets` com `idTutor` do tutor criado | Swagger | SELECT em TB_PET: linha nova com a FK apontando para o tutor |
+| 5 | **Alteração**: `PUT /api/tutores/{id}` mudando telefone | Swagger | SELECT em TB_TUTOR: telefone mudou na mesma linha |
+| 6 | **Alteração**: `PUT /api/pets/{id}` mudando o peso | Swagger | SELECT em TB_PET: peso mudou |
+| 7 | **Exclusão**: `DELETE /api/pets/{id}` | Swagger | SELECT em TB_PET: a linha sumiu |
+| 8 | **Exclusão**: `DELETE /api/tutores/{id}` | Swagger | SELECT em TB_TUTOR: a linha sumiu |
+
+Corpos prontos para copiar:
+
+```json
+POST /api/tutores
+{
+  "nome": "Marcos Ferreira",
+  "email": "marcos.ferreira@animed.com.br",
+  "cpf": "318.444.190-07",
+  "telefone": "(11) 98822-4410"
+}
+```
+
+```json
+POST /api/pets
+{
+  "nome": "Bidu",
+  "especie": "CACHORRO",
+  "sexo": "MACHO",
+  "raca": "Beagle",
+  "dataNascimento": "2021-08-09",
+  "pesoKg": 12.4,
+  "castrado": true,
+  "observacoesSaude": "Alergia a frango",
+  "idTutor": 5
+}
+```
+
+O seed do Flyway já entrega 4 tutores e 4 pets com conteúdo real (Marina/Thor, Carlos/Rex, …), o que cobre o requisito das **2+ linhas significativas** nas duas tabelas. As linhas do CRUD acima são criadas e apagadas na frente da câmera.
 
 ---
 
-## 6. Scripts entregues
+## 7. Scripts entregues
 
 | Arquivo | Para quê |
 |---------|----------|
-| `Dockerfile` | Build da API, usuário `animed` (não-root) |
-| `docker-compose.yml` | App + Oracle em container (mesmo desenho, na máquina) |
-| `scripts/criar-recursos-azure.sh` | Resource group + ACR + 2 ACIs |
-| `scripts/criar-recursos-azure.ps1` | Idem no Windows |
-| `scripts/docker-build-push.sh` | `docker build`, `tag` e `push` no ACR |
-| `scripts/remover-recursos-azure.sh` | Apaga o resource group |
-| `script_bd.sql` | DDL comentado + carga mínima de Tutor e Pet |
+| `Dockerfile` | Imagem da API em dois estágios; usuário `animed`, não-root |
+| `docker-compose.yml` | Mesmo desenho (app + Oracle em container) na máquina |
+| `scripts/criar-recursos-azure.ps1` | Cria **tudo** na Azure via CLI — Windows |
+| `scripts/criar-recursos-azure.sh` | Idem, em bash / Cloud Shell |
+| `scripts/build-imagem-kaniko.sh` | Build e push da imagem dentro da Azure, sem Docker |
+| `scripts/docker-build-push.sh` | Alternativa com `docker build` para quem tem Docker |
+| `scripts/remover-recursos-azure.sh` | Apaga o resource group inteiro |
+| `scripts/dados-demo.sh` | Recria o cenário de demonstração pelos endpoints |
+| `script_bd.sql` | DDL comentado das tabelas + carga mínima |
+| `src/main/resources/db/migration/` | As 12 migrations que o Flyway aplica na nuvem |
+
+### Limpar tudo depois da gravação
+
+```bash
+bash scripts/remover-recursos-azure.sh
+# ou
+az group delete --name rg-animed-sprint3 --yes --no-wait
+```
 
 ---
 
-## 7. Rotas usadas na correção
+## 8. Rotas usadas na correção
 
 | Método | Rota | Uso no vídeo |
 |--------|------|----------------|
 | POST | `/api/auth/login` | Pegar o JWT |
-| POST | `/api/tutores` | Inserir tutor |
 | GET | `/api/tutores` | Consultar tutores |
+| POST | `/api/tutores` | Inserir tutor |
 | PUT | `/api/tutores/{id}` | Atualizar tutor |
 | DELETE | `/api/tutores/{id}` | Excluir tutor |
-| POST | `/api/pets` | Inserir pet (FK do tutor) |
 | GET | `/api/pets` | Consultar pets |
+| POST | `/api/pets` | Inserir pet (FK do tutor) |
 | PUT | `/api/pets/{id}` | Atualizar pet |
 | DELETE | `/api/pets/{id}` | Excluir pet |
 
-Painel web: `/login`. Swagger: `/swagger-ui.html`.
+Painel web: `/login`. Swagger: `/swagger-ui.html`. Health: `/actuator/health`.
 
 ---
 
-## 8. Equipe
+## 9. Equipe
 
 | Nome | RM |
 |------|------|
