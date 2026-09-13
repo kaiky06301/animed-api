@@ -28,6 +28,12 @@ public class SeedUsuariosConfig implements CommandLineRunner {
 
     private static final String EMAIL_TUTOR  = "tutor@animed.com.br";
     private static final String EMAIL_DOUTOR = "doutor@animed.com.br";
+
+    /** Demais veterinários da clínica, para o tutor ter com quem escolher. */
+    private static final String[][] CORPO_CLINICO = {
+            { "doutor2@animed.com.br", "Dr. Rafael Aguiar" },
+            { "doutor3@animed.com.br", "Dra. Camila Nunes" },
+    };
     private static final String SENHA_DEMO   = "animed123";
 
     private final UsuarioRepository usuarioRepository;
@@ -39,6 +45,31 @@ public class SeedUsuariosConfig implements CommandLineRunner {
     public void run(String... args) {
         criarTutorDemo();
         criarDoutorDemo();
+        criarCorpoClinico();
+    }
+
+    /**
+     * Completa o corpo clínico.
+     *
+     * Com mais de um veterinário o tutor pode escolher com quem passar, e a
+     * clínica consegue sugerir quem está com o dia mais tranquilo.
+     */
+    private void criarCorpoClinico() {
+        for (String[] veterinario : CORPO_CLINICO) {
+            String email = veterinario[0];
+            if (usuarioRepository.existsByEmail(email)) {
+                continue;
+            }
+
+            usuarioRepository.save(Usuario.builder()
+                    .nome(veterinario[1])
+                    .email(email)
+                    .senha(passwordEncoder.encode(SENHA_DEMO))
+                    .role(Role.DOUTOR)
+                    .build());
+
+            log.info("Conta de demonstração criada: {} (perfil DOUTOR)", email);
+        }
     }
 
     private void criarTutorDemo() {

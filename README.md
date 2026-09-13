@@ -106,6 +106,8 @@ O registro sempre acontece — o histórico clínico precisa refletir a realidad
 - **Java 17**
 - **Spring Boot 3.3.4**
   - Spring Web (REST)
+  - **Spring Security** (JWT na API, formulário e sessão na web)
+  - **Thymeleaf** (camada de visualização)
   - Spring Data JPA
   - Spring Validation (Bean Validation)
   - Spring Cache (Caffeine)
@@ -231,9 +233,71 @@ spring.jpa.properties.hibernate.default_schema=RMxxxxxx
 
 H2 Console: http://localhost:8080/h2-console
 
-### Passo 4 — Acessar a documentação Swagger
+### Passo 4 — Acessar a aplicação
 
-🔗 **http://localhost:8080/swagger-ui.html**
+| O quê | Endereço |
+|-------|----------|
+| **Aplicação web** | http://localhost:8080/login |
+| Documentação Swagger | http://localhost:8080/swagger-ui.html |
+| Console H2 (perfil `h2`) | http://localhost:8080/h2-console |
+
+#### Contas de demonstração
+
+| Perfil | E-mail | Senha |
+|--------|--------|-------|
+| Tutor | `tutor@animed.com.br` | `animed123` |
+| Veterinário | `doutor@animed.com.br` | `animed123` |
+
+Criadas na primeira execução pelo `SeedUsuariosConfig`, com a senha gravada
+em hash BCrypt — nenhum hash fica versionado no repositório.
+
+---
+
+## 🖥️ Aplicação Web
+
+A camada de visualização é servida pelo próprio Spring Boot, com **Thymeleaf**.
+Ela não tem regra própria: consome os mesmos *services* que a API REST usa, para
+que a regra de negócio viva num lugar só e não divirja entre a web e o aplicativo.
+
+### Telas
+
+| Rota | Perfil | O que faz |
+|------|--------|-----------|
+| `/login` | público | Autenticação por formulário; cada perfil cai no próprio painel |
+| `/painel/tutor` | TUTOR | Pontuação, nível, desconto, moedas e os pets do tutor |
+| `/painel/tutor/agendar` | TUTOR | Escolhe pet, dia, horário livre e veterinário |
+| `/painel/veterinario` | DOUTOR | Agenda do dia, com navegação entre datas |
+| `/painel/veterinario/atendimentos/{id}/concluir` | DOUTOR | Diagnóstico, conduta, orientação e retorno |
+| `/painel/veterinario/pacientes` | DOUTOR | Pacientes da clínica, com busca |
+
+### Dois fluxos completos
+
+**1. Agendar atendimento (tutor)** — a tela lista apenas horários realmente
+livres, oferece escolher o veterinário ou deixar a clínica indicar o que está
+com o dia mais tranquilo, e recusa marcação que quebre as regras (dois
+atendimentos para o mesmo pet no dia, ou o tutor em dois lugares ao mesmo
+tempo). Confirmado, o tutor recebe os pontos do agendamento.
+
+**2. Concluir atendimento (veterinário)** — registra diagnóstico, conduta e
+orientação, credita os pontos ao tutor e, se o caso pedir, marca o retorno na
+agenda do próprio profissional. Quando o paciente não aparece, o veterinário
+registra a falta e os pontos do agendamento são estornados.
+
+Em ambos, o erro de regra volta como mensagem na tela, não como página de erro.
+
+### Segurança da web
+
+A aplicação tem **duas cadeias de segurança separadas**:
+
+| Cadeia | Alcance | Autenticação |
+|--------|---------|--------------|
+| `apiFilterChain` (`@Order(1)`) | `/api/**` | JWT, sem sessão — é o que o aplicativo mobile consome |
+| `webFilterChain` (`@Order(2)`) | páginas | Formulário e sessão, com CSRF ativo |
+
+O navegador não tem onde guardar um token com segurança, e o aplicativo não
+tem sessão: por isso cada um usa o mecanismo adequado. As rotas são separadas
+por perfil — `/painel/tutor` só aceita TUTOR, `/painel/veterinario` só aceita
+DOUTOR — e quem não estiver autenticado não alcança nenhuma das duas.
 
 ---
 
@@ -415,6 +479,17 @@ São **12 testes**, concentrados nas regras que dependem do relógio e que seria
 ---
 
 ## ✅ Requisitos Atendidos (Rubrica FIAP)
+
+### Sprint 3
+
+| Requisito | Pts | Status | Onde encontrar |
+|-----------|----:|--------|----------------|
+| **Frontend** (camada de visualização) | 30 | ✅ | `templates/`, `PainelController`, `PainelAcoesController` |
+| **Flyway** | 20 | ✅ | `db/migration/`, V1 a V12 |
+| **Spring Security** — 2 perfis, rotas protegidas | 30 | ✅ | `SecurityConfig` (duas cadeias), `Role` |
+| **Funcionalidades completas** — 2 fluxos não-CRUD | 20 | ✅ | Agendar atendimento · Concluir atendimento |
+
+### Base do projeto
 
 | Requisito | Status | Onde encontrar |
 |-----------|--------|----------------|

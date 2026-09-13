@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Agendar · Animed</title>
+    <link rel="stylesheet" th:href="@{/css/animed.css}">
+</head>
+<body>
+
+<header class="barra">
+    <span class="marca">Animed</span>
+    <nav>
+        <a th:href="@{/painel/tutor}">Meus pets</a>
+        <a th:href="@{/painel/tutor/agendar}" class="ativo">Agendar</a>
+    </nav>
+    <div class="usuario">
+        <span th:text="${nome}">Tutor</span>
+        <form th:action="@{/logout}" method="post" style="margin:0">
+            <button type="submit" class="botao contorno">Sair</button>
+        </form>
+    </div>
+</header>
+
+<main class="conteudo">
+    <p class="subtitulo">Área do tutor</p>
+    <h1>Agendar atendimento</h1>
+
+    <div class="aviso erro" th:if="${erro}" th:text="${erro}"></div>
+
+    <div class="cartao" style="margin-top: 20px">
+        <!-- Trocar o dia recarrega a página com os horários daquela data -->
+        <form method="get" th:action="@{/painel/tutor/agendar}" style="display: flex; gap: 8px; align-items: flex-end">
+            <div class="campo" style="flex: 1; margin: 0">
+                <label for="dataEscolha">Dia do atendimento</label>
+                <input type="date" id="dataEscolha" name="data"
+                       th:value="${dia}" th:min="${#temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}">
+            </div>
+            <button type="submit" class="botao contorno">Ver horários</button>
+        </form>
+    </div>
+
+    <div class="cartao">
+        <p style="font-size: 13px; color: var(--texto-secundario); margin-top: 0"
+           th:text="${disponibilidade.observacao()}">Horário de atendimento</p>
+
+        <div class="vazio" th:if="${#lists.isEmpty(disponibilidade.horarios())}">
+            Não há horários livres neste dia. Escolha outra data.
+        </div>
+
+        <form method="post" th:action="@{/painel/tutor/agendar}"
+              th:unless="${#lists.isEmpty(disponibilidade.horarios())}">
+
+            <input type="hidden" name="data" th:value="${dia}">
+
+            <div class="campo">
+                <label for="idPet">Pet</label>
+                <select id="idPet" name="idPet" required
+                        style="width:100%; padding:12px 14px; border-radius:10px;
+                               border:1px solid var(--borda); background: var(--superficie);
+                               color: var(--texto); font-size:14px">
+                    <option value="" disabled selected>Escolha o pet</option>
+                    <option th:each="pet : ${pets}"
+                            th:value="${pet.id()}"
+                            th:text="${pet.nome()} + ' · ' + ${pet.especie()}">Pet</option>
+                </select>
+            </div>
+
+            <div class="campo">
+                <label for="motivo">Motivo</label>
+                <input type="text" id="motivo" name="motivo" required maxlength="250"
+                       placeholder="Check-up preventivo, vacinação, retorno…">
+            </div>
+
+            <div class="campo">
+                <label for="horario">Horário</label>
+                <select id="horario" name="horario" required
+                        style="width:100%; padding:12px 14px; border-radius:10px;
+                               border:1px solid var(--borda); background: var(--superficie);
+                               color: var(--texto); font-size:14px">
+                    <option value="" disabled selected>Escolha o horário</option>
+                    <option th:each="h : ${disponibilidade.horarios()}"
+                            th:value="${h}"
+                            th:text="${#strings.substring(h, 0, 5)}">08:00</option>
+                </select>
+            </div>
+
+            <div class="campo">
+                <label for="idVeterinario">Veterinário</label>
+                <select id="idVeterinario" name="idVeterinario"
+                        style="width:100%; padding:12px 14px; border-radius:10px;
+                               border:1px solid var(--borda); background: var(--superficie);
+                               color: var(--texto); font-size:14px">
+                    <!-- Sem preferência, a clínica indica quem está mais tranquilo -->
+                    <option value="">Sem preferência (a clínica escolhe)</option>
+                    <option th:each="v : ${veterinarios}"
+                            th:value="${v.id()}"
+                            th:text="${v.nome()} + ' · ' + ${v.horariosLivres()} + ' horários livres'
+                                     + (${v.sugerido()} ? ' · sugerido' : '')">Veterinário</option>
+                </select>
+            </div>
+
+            <button type="submit" class="botao" style="width: 100%">Confirmar agendamento</button>
+        </form>
+    </div>
+</main>
+
+</body>
+</html>

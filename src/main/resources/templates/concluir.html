@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Concluir atendimento · Animed</title>
+    <link rel="stylesheet" th:href="@{/css/animed.css}">
+</head>
+<body>
+
+<header class="barra">
+    <span class="marca">Animed</span>
+    <nav>
+        <a th:href="@{/painel/veterinario}">Agenda</a>
+        <a th:href="@{/painel/veterinario/pacientes}">Pacientes</a>
+    </nav>
+    <div class="usuario">
+        <span th:text="${nome}">Veterinário</span>
+        <form th:action="@{/logout}" method="post" style="margin:0">
+            <button type="submit" class="botao contorno">Sair</button>
+        </form>
+    </div>
+</header>
+
+<main class="conteudo" style="max-width: 640px">
+    <p class="subtitulo">Área do veterinário</p>
+    <h1>Concluir atendimento</h1>
+
+    <p style="color: var(--texto-secundario); font-size: 14px; margin-top: 4px">
+        <span th:text="${atendimento.nomePet()}">Pet</span> ·
+        <span th:text="${#temporals.format(atendimento.dataHora(), 'dd/MM/yyyy HH:mm')}">data</span> ·
+        <span th:text="${atendimento.motivo()}">motivo</span>
+    </p>
+
+    <div class="cartao" style="margin-top: 20px">
+        <form method="post"
+              th:action="@{'/painel/veterinario/atendimentos/' + ${atendimento.idConsulta()} + '/concluir'}">
+
+            <div class="campo">
+                <label for="diagnostico">Diagnóstico</label>
+                <textarea id="diagnostico" name="diagnostico" required rows="3" maxlength="1000"
+                          placeholder="O que foi encontrado no atendimento"
+                          style="width:100%; padding:12px 14px; border-radius:10px;
+                                 border:1px solid var(--borda); background: var(--superficie);
+                                 color: var(--texto); font-size:14px; font-family: inherit"></textarea>
+            </div>
+
+            <div class="campo">
+                <label for="prescricao">Conduta</label>
+                <textarea id="prescricao" name="prescricao" rows="3" maxlength="1000"
+                          placeholder="Exames pedidos, cuidados indicados, encaminhamentos"
+                          style="width:100%; padding:12px 14px; border-radius:10px;
+                                 border:1px solid var(--borda); background: var(--superficie);
+                                 color: var(--texto); font-size:14px; font-family: inherit"></textarea>
+            </div>
+
+            <div class="campo">
+                <label for="orientacao">Orientação para o tutor</label>
+                <textarea id="orientacao" name="orientacao" rows="2" maxlength="500"
+                          placeholder="O que o tutor deve seguir até o retorno"
+                          style="width:100%; padding:12px 14px; border-radius:10px;
+                                 border:1px solid var(--borda); background: var(--superficie);
+                                 color: var(--texto); font-size:14px; font-family: inherit"></textarea>
+            </div>
+
+            <!-- Retorno é decisão do profissional: em branco significa alta -->
+            <p style="font-size: 12px; font-weight: 700; color: var(--texto-secundario);
+                      margin: 18px 0 8px">
+                Retorno (deixe em branco para dar alta)
+            </p>
+
+            <div style="display: flex; gap: 10px">
+                <div class="campo" style="flex: 1">
+                    <label for="dataRetorno">Data</label>
+                    <input type="date" id="dataRetorno" name="dataRetorno">
+                </div>
+
+                <div class="campo" style="flex: 1">
+                    <label for="horarioRetorno">Horário</label>
+                    <input type="time" id="horarioRetorno" name="horarioRetorno" step="1800">
+                </div>
+            </div>
+
+            <button type="submit" class="botao" style="width: 100%">Concluir atendimento</button>
+        </form>
+    </div>
+
+    <a th:href="@{/painel/veterinario}"
+       style="display:inline-block; margin-top: 12px; font-size: 13px">‹ Voltar para a agenda</a>
+</main>
+
+</body>
+</html>

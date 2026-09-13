@@ -3,6 +3,7 @@ package br.com.fiap.clyvovet.service;
 import br.com.fiap.clyvovet.dto.AgendaDTO;
 import br.com.fiap.clyvovet.entity.Consulta;
 import br.com.fiap.clyvovet.entity.Pet;
+import br.com.fiap.clyvovet.entity.Tutor;
 import br.com.fiap.clyvovet.entity.Usuario;
 import br.com.fiap.clyvovet.enums.Role;
 import br.com.fiap.clyvovet.enums.StatusConsulta;
@@ -20,6 +21,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -80,8 +82,87 @@ public class AgendaService {
                         "Nenhum veterinário disponível para atendimento no momento"));
     }
 
+    /** Veterinários em atividade na clínica. */
+    public List<Usuario> corpoClinico() {
+        List<Usuario> veterinarios = usuarioRepository
+                .findByRoleAndAtivoTrueOrderByIdAsc(Role.DOUTOR);
+
+        if (veterinarios.isEmpty()) {
+            throw new BusinessException(
+                    "Nenhum veterinário disponível para atendimento no momento");
+        }
+        return veterinarios;
+    }
+
+    /** Quantos atendimentos o veterinário já tem marcados na data. */
+    private long cargaNoDia(Usuario veterinario, LocalDate data) {
+        return consultaRepository
+                .findAgendaDoVeterinario(veterinario.getId(),
+                        data.atStartOfDay(), data.atTime(LocalTime.MAX))
+                .stream()
+                .filter(c -> c.getStatus() != StatusConsulta.CANCELADA)
+                .count();
+    }
+
+    /**
+     * Veterinário sugerido quando o tutor não tem preferência.
+     *
+     * Escolhe quem tem menos atendimentos marcados na data: o tutor espera
+     * menos e a clínica distribui o dia em vez de sobrecarregar sempre o
+     * mesmo profissional. Empate desempata pela ordem de entrada, para que a
+     * sugestão seja estável se o tutor voltar à tela.
+     */
+    public Usuario veterinarioMaisTranquilo(LocalDate data) {
+        return corpoClinico().stream()
+                .min(Comparator.comparingLong((Usuario v) -> cargaNoDia(v, data))
+                        .thenComparing(Usuario::getId))
+                .orElseThrow(() -> new BusinessException(
+                        "Nenhum veterinário disponível para atendimento no momento"));
+    }
+
+    /** Resolve o profissional do atendimento: o escolhido ou o mais tranquilo. */
+    private Usuario resolverVeterinario(Long idVeterinario, LocalDate data) {
+        if (idVeterinario == null) {
+            return veterinarioMaisTranquilo(data);
+        }
+
+        return corpoClinico().stream()
+                .filter(v -> v.getId().equals(idVeterinario))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(
+                        "Veterinário não encontrado ou fora de atividade"));
+    }
+
+    /**
+     * Corpo clínico com a agenda de cada um na data.
+     *
+     * Alimenta a escolha do tutor: ele vê quantos horários cada profissional
+     * ainda tem livres antes de decidir, e qual deles a clínica sugere.
+     */
+    public AgendaDTO.CorpoClinico veterinariosDisponiveis(LocalDate data) {
+        Usuario sugerido = veterinarioMaisTranquilo(data);
+
+        List<AgendaDTO.VeterinarioDisponivel> profissionais = corpoClinico().stream()
+                .map(v -> {
+                    AgendaDTO.Disponibilidade agenda = disponibilidade(data, v.getId());
+                    return new AgendaDTO.VeterinarioDisponivel(
+                            v.getId(),
+                            v.getNome(),
+                            agenda.horarios().size(),
+                            (int) cargaNoDia(v, data),
+                            v.getId().equals(sugerido.getId()));
+                })
+                .toList();
+
+        return new AgendaDTO.CorpoClinico(data, profissionais);
+    }
+
     public AgendaDTO.Disponibilidade disponibilidade(LocalDate data) {
-        Usuario veterinario = veterinarioDaClinica();
+        return disponibilidade(data, null);
+    }
+
+    public AgendaDTO.Disponibilidade disponibilidade(LocalDate data, Long idVeterinario) {
+        Usuario veterinario = resolverVeterinario(idVeterinario, data);
         DayOfWeek dia = data.getDayOfWeek();
 
         if (dia == DayOfWeek.SUNDAY) {
@@ -134,11 +215,15 @@ public class AgendaService {
      * clínica pode recebê-lo, sem precisar abrir dia a dia.
      */
     public AgendaDTO.MesDisponivel mes(int ano, int mes) {
+        return mes(ano, mes, null);
+    }
+
+    public AgendaDTO.MesDisponivel mes(int ano, int mes, Long idVeterinario) {
         LocalDate primeiro = LocalDate.of(ano, mes, 1);
         List<AgendaDTO.DiaDoMes> dias = new ArrayList<>();
 
         for (LocalDate data = primeiro; data.getMonthValue() == mes; data = data.plusDays(1)) {
-            AgendaDTO.Disponibilidade doDia = disponibilidade(data);
+            AgendaDTO.Disponibilidade doDia = disponibilidade(data, idVeterinario);
             dias.add(new AgendaDTO.DiaDoMes(
                     data, !doDia.horarios().isEmpty(), doDia.horarios().size()));
         }
@@ -166,6 +251,25 @@ public class AgendaService {
         }
     }
 
+    /**
+     * O tutor não pode ter dois atendimentos no mesmo horário.
+     *
+     * Com mais de um veterinário na clínica, dois pets do mesmo tutor cabem
+     * no mesmo horário em agendas diferentes — mas quem leva os dois é a
+     * mesma pessoa, e ela não consegue estar em duas salas ao mesmo tempo.
+     */
+    private void exigirTutorLivreNoHorario(Tutor tutor, LocalDateTime quando) {
+        consultaRepository.findDoTutorNoHorario(tutor.getId(), quando).stream()
+                .filter(c -> c.getStatus() == StatusConsulta.AGENDADA)
+                .findFirst()
+                .ifPresent(c -> {
+                    throw new BusinessException(
+                            "Você já tem um atendimento neste horário com "
+                                    + c.getPet().getNome()
+                                    + ". Escolha outro horário para este pet.");
+                });
+    }
+
     private AgendaDTO.Disponibilidade indisponivel(LocalDate data, Usuario veterinario,
                                                    String motivo) {
         return new AgendaDTO.Disponibilidade(data, false, veterinario.getNome(), motivo,
@@ -179,7 +283,19 @@ public class AgendaService {
      * livres do tutor aparece aqui como atendimento marcado.
      */
     public AgendaDTO.AgendaDoDia agendaDoDia(LocalDate data) {
-        Usuario veterinario = veterinarioDaClinica();
+        return agendaDoDia(data, null);
+    }
+
+    /**
+     * Agenda de um dia.
+     *
+     * Sem idVeterinario responde pelo primeiro profissional da clínica — é o
+     * que o veterinário logado recebe quando abre a própria agenda.
+     */
+    public AgendaDTO.AgendaDoDia agendaDoDia(LocalDate data, Long idVeterinario) {
+        Usuario veterinario = idVeterinario == null
+                ? veterinarioDaClinica()
+                : resolverVeterinario(idVeterinario, data);
 
         // Os cancelados continuam na lista do veterinário: ele precisa saber
         // que o horário abriu e que aquele paciente não virá.
@@ -198,7 +314,7 @@ public class AgendaService {
                 .toList();
 
         return new AgendaDTO.AgendaDoDia(data, veterinario.getNome(),
-                disponibilidade(data).horarios().size(), atendimentos);
+                disponibilidade(data, veterinario.getId()).horarios().size(), atendimentos);
     }
 
     /**
@@ -414,15 +530,18 @@ public class AgendaService {
         LocalDate data = pedido.dataHora().toLocalDate();
         String horario = pedido.dataHora().toLocalTime().toString();
 
-        AgendaDTO.Disponibilidade disponivel = disponibilidade(data);
+        // Sem preferência, a clínica indica quem está com o dia mais tranquilo
+        Usuario veterinario = resolverVeterinario(pedido.idVeterinario(), data);
+
+        AgendaDTO.Disponibilidade disponivel = disponibilidade(data, veterinario.getId());
 
         if (!disponivel.atende() || !disponivel.horarios().contains(horario)) {
-            throw new BusinessException("Este horário não está mais disponível");
+            throw new BusinessException(
+                    "Este horário não está mais disponível com " + veterinario.getNome());
         }
 
         exigirDiaLivreParaOPet(pet.getId(), pet.getNome(), data);
-
-        Usuario veterinario = veterinarioDaClinica();
+        exigirTutorLivreNoHorario(pet.getTutor(), pedido.dataHora());
 
         Consulta consulta = consultaRepository.save(Consulta.builder()
                 .dataHora(pedido.dataHora())

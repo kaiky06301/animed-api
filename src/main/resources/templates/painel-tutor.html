@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Meus pets · Animed</title>
+    <link rel="stylesheet" th:href="@{/css/animed.css}">
+</head>
+<body>
+
+<header class="barra">
+    <span class="marca">Animed</span>
+    <nav>
+        <a th:href="@{/painel/tutor}" class="ativo">Meus pets</a>
+        <a th:href="@{/painel/tutor/agendar}">Agendar</a>
+    </nav>
+    <div class="usuario">
+        <span th:text="${nome}">Tutor</span>
+        <form th:action="@{/logout}" method="post" style="margin:0">
+            <button type="submit" class="botao contorno">Sair</button>
+        </form>
+    </div>
+</header>
+
+<main class="conteudo">
+    <p class="subtitulo">Área do tutor</p>
+    <h1>Olá, <span th:text="${nome}">Tutor</span></h1>
+
+    <div class="aviso ok" th:if="${sucesso}" th:text="${sucesso}" style="margin-top: 16px"></div>
+    <div class="aviso erro" th:if="${erro}" th:text="${erro}" style="margin-top: 16px"></div>
+
+    <!-- A pontuação é apurada pela API: a página só exibe -->
+    <div class="resumo" style="margin-top: 20px">
+        <div class="item">
+            <div class="numero" th:text="${tutor.pontosTotais()}">0</div>
+            <div class="rotulo">pontos</div>
+        </div>
+        <div class="item">
+            <div class="numero verde" th:text="${tutor.nivelDescricao()}">Nível</div>
+            <div class="rotulo">seu nível</div>
+        </div>
+        <div class="item">
+            <div class="numero cinza" th:text="${tutor.descontoPercentual()} + '%'">0%</div>
+            <div class="rotulo">de desconto</div>
+        </div>
+        <div class="item">
+            <div class="numero" th:text="${tutor.moedas()}">0</div>
+            <div class="rotulo">moedas</div>
+        </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px">
+        <h2 style="font-size: 18px; margin: 0; flex: 1">Meus pets</h2>
+        <a class="botao" th:href="@{/painel/tutor/agendar}">Agendar atendimento</a>
+    </div>
+
+    <div class="vazio" th:if="${#lists.isEmpty(pets)}">
+        Você ainda não tem pets cadastrados.
+    </div>
+
+    <div class="grade" th:unless="${#lists.isEmpty(pets)}">
+        <div class="cartao" th:each="pet : ${pets}">
+            <div style="font-size: 16px; font-weight: 700" th:text="${pet.nome()}">Nome</div>
+
+            <div style="font-size: 12px; color: var(--texto-secundario); margin-top: 2px">
+                <span th:text="${pet.especie()}">ESPECIE</span>
+                <span th:if="${pet.raca()}" th:text="' · ' + ${pet.raca()}"></span>
+                <span th:if="${pet.idadeAnos()}" th:text="' · ' + ${pet.idadeAnos()} + ' anos'"></span>
+            </div>
+
+            <div style="font-size: 12px; color: var(--texto-suave); margin-top: 6px"
+                 th:if="${pet.pesoKg()}"
+                 th:text="'Peso: ' + ${pet.pesoKg()} + ' kg'">Peso</div>
+
+            <div style="font-size: 12px; color: var(--texto-suave); margin-top: 4px"
+                 th:if="${pet.observacoesSaude()}"
+                 th:text="${pet.observacoesSaude()}">Observações</div>
+        </div>
+    </div>
+</main>
+
+</body>
+</html>

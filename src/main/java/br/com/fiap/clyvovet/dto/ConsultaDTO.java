@@ -42,6 +42,10 @@ public class ConsultaDTO {
             String motivo,
             String diagnostico,
             String prescricao,
+
+            /** Recomendação escrita pelo veterinário para o tutor seguir. */
+            String orientacao,
+
             BigDecimal valor,
             StatusConsulta status,
             String veterinario,

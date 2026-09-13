@@ -22,11 +22,27 @@ public class AgendaController {
 
     private final AgendaService agendaService;
 
-    @Operation(summary = "Horários livres de um dia")
+    @Operation(
+            summary = "Horários livres de um dia",
+            description = "Sem idVeterinario, responde pela agenda do profissional "
+                    + "com o dia mais tranquilo."
+    )
     @GetMapping("/disponibilidade")
     public ResponseEntity<AgendaDTO.Disponibilidade> disponibilidade(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data,
+            @RequestParam(required = false) Long idVeterinario) {
+        return ResponseEntity.ok(agendaService.disponibilidade(data, idVeterinario));
+    }
+
+    @Operation(
+            summary = "Veterinários disponíveis na data",
+            description = "Lista o corpo clínico com os horários livres de cada um e "
+                    + "indica qual a clínica sugere para quem não tem preferência."
+    )
+    @GetMapping("/veterinarios")
+    public ResponseEntity<AgendaDTO.CorpoClinico> veterinarios(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data) {
-        return ResponseEntity.ok(agendaService.disponibilidade(data));
+        return ResponseEntity.ok(agendaService.veterinariosDisponiveis(data));
     }
 
     @Operation(
@@ -35,8 +51,9 @@ public class AgendaController {
     )
     @GetMapping("/disponibilidade/mes")
     public ResponseEntity<AgendaDTO.MesDisponivel> mes(
-            @RequestParam int ano, @RequestParam int mes) {
-        return ResponseEntity.ok(agendaService.mes(ano, mes));
+            @RequestParam int ano, @RequestParam int mes,
+            @RequestParam(required = false) Long idVeterinario) {
+        return ResponseEntity.ok(agendaService.mes(ano, mes, idVeterinario));
     }
 
     @Operation(

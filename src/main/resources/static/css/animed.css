@@ -1,0 +1,146 @@
+/* Identidade visual do Animed, compartilhada pelas páginas do sistema. */
+:root {
+  --fundo: #0F1419;
+  --fundo-elevado: #171D24;
+  --superficie: #1B2330;
+  --superficie-alt: #222B3A;
+  --borda: rgba(255, 255, 255, 0.08);
+  --texto: #F4F6F7;
+  --texto-secundario: #9AAAB5;
+  --texto-suave: #6B7A85;
+  --primaria: #22D3A0;
+  --primaria-suave: rgba(34, 211, 160, 0.15);
+  --laranja: #FF8A3D;
+  --laranja-suave: rgba(255, 138, 61, 0.15);
+  --erro: #FF6B6B;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--fundo);
+  color: var(--texto);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.5;
+}
+
+a { color: var(--primaria); text-decoration: none; }
+
+.barra {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 24px;
+  background: var(--fundo-elevado);
+  border-bottom: 1px solid var(--borda);
+}
+.barra .marca { font-size: 20px; font-weight: 800; color: var(--primaria); }
+.barra nav { display: flex; gap: 18px; margin-left: 12px; }
+.barra nav a { color: var(--texto-secundario); font-size: 14px; font-weight: 600; }
+.barra nav a:hover, .barra nav a.ativo { color: var(--texto); }
+.barra .usuario { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+.barra .usuario span { font-size: 13px; color: var(--texto-secundario); }
+
+.conteudo { max-width: 960px; margin: 0 auto; padding: 28px 24px 64px; }
+
+h1 { font-size: 26px; margin: 0; }
+.subtitulo { color: var(--primaria); font-size: 13px; font-weight: 700; margin: 0 0 20px; }
+
+.cartao {
+  background: var(--fundo-elevado);
+  border: 1px solid var(--borda);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 12px;
+}
+
+.grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+
+.resumo { display: flex; gap: 8px; margin-bottom: 22px; flex-wrap: wrap; }
+.resumo .item {
+  flex: 1;
+  min-width: 150px;
+  background: var(--fundo-elevado);
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  padding: 14px 18px;
+}
+.resumo .numero { font-size: 24px; font-weight: 800; color: var(--laranja); }
+.resumo .numero.verde { color: var(--primaria); }
+.resumo .numero.cinza { color: var(--texto-secundario); }
+.resumo .rotulo { font-size: 12px; color: var(--texto-suave); }
+
+.selo {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.selo.agendado { background: var(--laranja-suave); color: var(--laranja); }
+.selo.realizado { background: var(--primaria-suave); color: var(--primaria); }
+.selo.falta { background: var(--superficie-alt); color: var(--texto-suave); }
+
+.linha-atendimento { display: flex; align-items: center; gap: 18px; }
+.linha-atendimento .hora { font-size: 17px; font-weight: 800; min-width: 64px; }
+.linha-atendimento .duracao { font-size: 11px; color: var(--texto-suave); font-weight: 400; }
+.linha-atendimento .dados { flex: 1; }
+.linha-atendimento .pet { font-size: 15px; font-weight: 700; }
+.linha-atendimento .tutor,
+.linha-atendimento .motivo { font-size: 12px; color: var(--texto-secundario); }
+
+.navegacao-dia {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  padding: 12px 18px;
+  margin-bottom: 14px;
+}
+.navegacao-dia .data { font-weight: 700; }
+.navegacao-dia .hoje { font-size: 11px; color: var(--laranja); font-weight: 700; }
+
+.botao {
+  display: inline-block;
+  padding: 11px 18px;
+  border-radius: 10px;
+  background: var(--primaria);
+  color: #06281F;
+  font-weight: 800;
+  font-size: 14px;
+  border: none;
+  cursor: pointer;
+}
+.botao.contorno {
+  background: transparent;
+  border: 1px solid var(--borda);
+  color: var(--texto-secundario);
+}
+
+.campo { margin-bottom: 14px; }
+.campo label { display: block; font-size: 12px; font-weight: 700; color: var(--texto-secundario); margin-bottom: 6px; }
+.campo input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--borda);
+  background: var(--superficie);
+  color: var(--texto);
+  font-size: 14px;
+}
+
+.vazio { text-align: center; color: var(--texto-secundario); padding: 44px 0; }
+
+.aviso { padding: 12px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 14px; }
+.aviso.erro { background: rgba(255, 107, 107, 0.12); color: var(--erro); }
+.aviso.ok { background: var(--primaria-suave); color: var(--primaria); }
+
+/* Login */
+.tela-login { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.caixa-login { width: 100%; max-width: 380px; }
+.caixa-login .marca { font-size: 34px; font-weight: 800; color: var(--primaria); text-align: center; }
+.caixa-login .frase { text-align: center; color: var(--texto-secundario); font-size: 14px; margin-bottom: 26px; }
+.caixa-login .demo { margin-top: 20px; font-size: 12px; color: var(--texto-suave); text-align: center; line-height: 1.8; }
