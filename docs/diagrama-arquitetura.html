@@ -1,84 +1,270 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Animed — Arquitetura Sprint 3 (ACR + ACI)</title>
-  <style>
-    :root { --pink:#ed145b; --ink:#111; --muted:#555; --line:#ccc; }
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; background: #f3f3f3; color: var(--ink); }
-    header { border-top: 8px solid var(--pink); padding: 24px 40px 8px; }
-    h1 { margin: 0; font-size: 26px; }
-    header p { color: var(--muted); margin: 8px 0 0; }
-    .wrap { padding: 16px 40px 40px; }
-    .canvas { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 28px; }
-    .lane { display: flex; gap: 20px; align-items: stretch; justify-content: center; flex-wrap: wrap; margin: 18px 0; }
-    .box { width: 210px; border: 2px solid #111; border-radius: 10px; padding: 14px; background: #fff; }
-    .box h3 { margin: 0 0 6px; font-size: 15px; }
-    .box p { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.4; }
-    .git { background: #111; color: #fff; border-color: #111; }
-    .git p { color: #ddd; }
-    .acr { background: #fff3f7; border-color: var(--pink); }
-    .api { background: #eef6ff; border-color: #1d4ed8; }
-    .ora { background: #fff7ed; border-color: #c2410c; }
-    .user { background: #111; color: #fff; }
-    .user p { color: #ddd; }
-    .arrow { align-self: center; font-size: 28px; color: var(--pink); font-weight: 700; }
-    .caption { text-align: center; font-size: 13px; color: var(--muted); margin: 4px 0 20px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; }
-    th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
-    th { background: #111; color: #fff; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Animed — Arquitetura Sprint 3 (ACR + ACI)</title>
+<style>
+  :root { --pink:#ED145B; --azure:#0078D4; --ink:#16191d; --muted:#5b6570; --line:#d5dbe1; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#eef1f4; color:var(--ink);
+         font-family:"Segoe UI",system-ui,Arial,sans-serif; }
+  header { background:#fff; border-top:8px solid var(--pink); padding:26px 44px 18px;
+           border-bottom:1px solid var(--line); }
+  h1 { margin:0; font-size:27px; letter-spacing:-.2px; }
+  header p { margin:8px 0 0; color:var(--muted); font-size:15px; }
+  .wrap { padding:28px 44px 56px; max-width:1560px; margin:0 auto; }
+  .canvas { background:#fff; border:1px solid var(--line); border-radius:14px;
+            padding:16px; overflow-x:auto; }
+  svg { display:block; min-width:1320px; width:100%; height:auto; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:26px; margin-top:26px; }
+  @media (max-width:980px){ .grid { grid-template-columns:1fr; } }
+  .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:22px 24px; }
+  .card h2 { margin:0 0 14px; font-size:17px; }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th,td { border-bottom:1px solid var(--line); padding:9px 8px; text-align:left; vertical-align:top; }
+  th { color:var(--muted); font-weight:600; font-size:12px; text-transform:uppercase;
+       letter-spacing:.4px; }
+  td.n { width:34px; }
+  .badge { display:inline-block; width:23px; height:23px; line-height:23px; text-align:center;
+           border-radius:50%; background:var(--azure); color:#fff; font-size:12.5px; font-weight:700; }
+  code { background:#f3f5f7; border:1px solid var(--line); border-radius:4px;
+         padding:1px 5px; font-size:12.5px; }
+</style>
 </head>
 <body>
-  <header>
-    <h1>Animed — arquitetura na Azure (ACR + ACI)</h1>
-    <p>Sprint 3 · DevOps Tools &amp; Cloud Computing · opção 1: tudo em container</p>
-  </header>
-  <div class="wrap">
-    <div class="canvas">
-      <div class="lane">
-        <div class="box git">
-          <h3>GitHub</h3>
-          <p>Código-fonte, Dockerfile, scripts Azure CLI e README.</p>
-        </div>
-        <div class="arrow">→</div>
-        <div class="box acr">
-          <h3>Azure Container Registry</h3>
-          <p>Guarda as imagens <em>animed-api:1.0</em> e <em>oracle-xe:21</em>.</p>
-        </div>
-      </div>
-      <p class="caption">docker build / az acr build → docker push → ACR</p>
+<header>
+  <h1>Animed — arquitetura da solução na Azure</h1>
+  <p>Sprint 3 · DevOps Tools &amp; Cloud Computing · Opção 1: <strong>ACR + ACI</strong> — aplicação e banco 100% em container, provisionados por Azure CLI</p>
+</header>
 
-      <div class="lane">
-        <div class="box user">
-          <h3>Tutor / veterinário</h3>
-          <p>Acessa o Swagger da API na nuvem e executa o CRUD.</p>
-        </div>
-        <div class="arrow">→</div>
-        <div class="box api">
-          <h3>ACI · Animed API</h3>
-          <p>Container Java 17, porta 8080, processo com usuário sem root.</p>
-        </div>
-        <div class="arrow">→</div>
-        <div class="box ora">
-          <h3>ACI · Oracle XE</h3>
-          <p>Banco em container, porta 1521. Persiste Tutor e Pet.</p>
-        </div>
-      </div>
-      <p class="caption">As duas instâncias puxam a imagem do ACR. Senha e JDBC vão por variável de ambiente.</p>
+<div class="wrap">
+<div class="canvas">
+<svg viewBox="0 0 1570 830" role="img" aria-label="Diagrama de arquitetura da solução Animed na Azure">
+  <defs>
+    <marker id="seta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#0078D4"/>
+    </marker>
+    <marker id="setaRosa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ED145B"/>
+    </marker>
+    <marker id="setaCinza" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8b93a0"/>
+    </marker>
+    <style>
+      .rot   { font:600 14px "Segoe UI",Arial; fill:#16191d; }
+      .rotW  { font:600 14px "Segoe UI",Arial; fill:#ffffff; }
+      .sub   { font:12px "Segoe UI",Arial; fill:#5b6570; }
+      .tiny  { font:11.5px "Segoe UI",Arial; fill:#5b6570; }
+      .tinyW { font:11.5px "Segoe UI",Arial; fill:#dfe5ea; }
+      .tinyG { font:11.5px "Segoe UI",Arial; fill:#1a7f37; }
+      .tinyGL{ font:11.5px "Segoe UI",Arial; fill:#7ee2a8; }
+      .tinyP { font:11.5px "Segoe UI",Arial; fill:#ED145B; }
+      .tinyM { font:11.5px "Segoe UI",Arial; fill:#8b93a0; }
+      .zona  { font:600 12px "Segoe UI",Arial; fill:#0078D4; letter-spacing:.6px; }
+      .zonaW { font:600 12px "Segoe UI",Arial; fill:#ffffff; letter-spacing:.6px; }
+      .zonaC { font:600 12px "Segoe UI",Arial; fill:#5b6570; letter-spacing:.6px; }
+      .num   { font:700 12px "Segoe UI",Arial; fill:#ffffff; text-anchor:middle; }
+      .fluxo { stroke:#0078D4; stroke-width:2; fill:none; marker-end:url(#seta); }
+      .dados { stroke:#ED145B; stroke-width:2.4; fill:none; marker-end:url(#setaRosa); }
+      .prov  { stroke:#8b93a0; stroke-width:1.8; fill:none; stroke-dasharray:6 4; marker-end:url(#setaCinza); }
+    </style>
+  </defs>
 
-      <table>
-        <tr><th>Recurso</th><th>Papel nesta solução</th></tr>
-        <tr><td>GitHub</td><td>Origem do clone no vídeo e dos scripts de deploy.</td></tr>
-        <tr><td>Azure CLI</td><td>Cria o resource group, o ACR e os dois Container Instances. Nada pelo Portal.</td></tr>
-        <tr><td>ACR</td><td>Registro privado das imagens Docker da API e do Oracle.</td></tr>
-        <tr><td>ACI da API</td><td>Executa o container da aplicação. Expõe Swagger e as rotas REST.</td></tr>
-        <tr><td>ACI Oracle</td><td>Executa o container do banco. É aqui que o SELECT do CRUD aparece.</td></tr>
-        <tr><td>Flyway</td><td>Na primeira subida aplica o DDL e o seed (script_bd.sql / migrations).</td></tr>
-      </table>
-    </div>
+  <!-- ===================== AMBIENTE LOCAL (equipe) ===================== -->
+  <rect x="20" y="140" width="232" height="300" rx="12" fill="#fafbfc" stroke="#c8d0d8" stroke-dasharray="6 4"/>
+  <text x="38" y="166" class="zonaC">AMBIENTE DA EQUIPE</text>
+
+  <rect x="44" y="184" width="184" height="98" rx="10" fill="#16191d"/>
+  <circle cx="78" cy="220" r="13" fill="#fff"/>
+  <path d="M62 250 a16 16 0 0 1 32 0 z" fill="#fff"/>
+  <text x="106" y="218" class="rotW">Equipe</text>
+  <text x="106" y="237" class="tinyW">Azure CLI + Git</text>
+  <text x="62" y="270" class="tinyGL">não precisa de Docker</text>
+
+  <rect x="44" y="306" width="184" height="106" rx="10" fill="#fff" stroke="#16191d" stroke-width="2"/>
+  <circle cx="74" cy="340" r="13" fill="#16191d"/>
+  <text x="96" y="338" class="rot">GitHub</text>
+  <text x="58" y="366" class="tiny">animed-api (público)</text>
+  <text x="58" y="384" class="tiny">código + Dockerfile</text>
+  <text x="58" y="402" class="tiny">+ scripts Azure CLI</text>
+
+  <!-- ===================== USUÁRIOS FINAIS ===================== -->
+  <rect x="1396" y="252" width="158" height="196" rx="12" fill="#fafbfc" stroke="#c8d0d8" stroke-dasharray="6 4"/>
+  <text x="1412" y="278" class="zonaC">USUÁRIOS</text>
+  <rect x="1414" y="292" width="122" height="140" rx="10" fill="#16191d"/>
+  <circle cx="1475" cy="326" r="14" fill="#fff"/>
+  <path d="M1458 358 a17 17 0 0 1 34 0 z" fill="#fff"/>
+  <text x="1432" y="390" class="rotW">Tutor e</text>
+  <text x="1424" y="408" class="rotW">veterinário</text>
+  <text x="1428" y="426" class="tinyW">/login · Swagger</text>
+
+  <!-- ===================== NUVEM AZURE ===================== -->
+  <rect x="296" y="30" width="1084" height="768" rx="16" fill="#f4f9fd" stroke="#0078D4" stroke-width="2"/>
+  <rect x="296" y="30" width="380" height="32" rx="16" fill="#0078D4"/>
+  <text x="318" y="51" class="zonaW">MICROSOFT AZURE · Subscription FIAP · brazilsouth</text>
+
+  <!-- Azure CLI -->
+  <rect x="330" y="86" width="310" height="94" rx="10" fill="#16191d"/>
+  <text x="350" y="114" class="rotW">Azure CLI</text>
+  <text x="350" y="136" class="tinyW">az group · az acr · az container</text>
+  <text x="350" y="156" class="tinyW">cria 100% dos recursos abaixo</text>
+  <text x="350" y="172" class="tinyGL">nenhum recurso criado pelo Portal</text>
+
+  <!-- Docker Hub -->
+  <rect x="700" y="86" width="240" height="94" rx="10" fill="#fff" stroke="#c8d0d8"/>
+  <text x="720" y="114" class="rot">Docker Hub</text>
+  <text x="720" y="136" class="tiny">imagem oficial do Oracle XE</text>
+  <text x="720" y="156" class="tiny">gvenzl/oracle-xe:21-slim</text>
+
+  <!-- Como se comprova -->
+  <rect x="1104" y="86" width="252" height="94" rx="10" fill="#fff" stroke="#c8d0d8"/>
+  <text x="1124" y="114" class="rot">Como se comprova</text>
+  <text x="1124" y="136" class="tiny">/actuator/health → UP · az container logs</text>
+  <text x="1124" y="156" class="tiny">SELECT no Oracle · az container exec → id</text>
+
+  <!-- ===================== RESOURCE GROUP ===================== -->
+  <rect x="322" y="206" width="1036" height="570" rx="12" fill="#fff" stroke="#9ec5e8" stroke-dasharray="7 5"/>
+  <text x="344" y="762" class="zona">RESOURCE GROUP · rg-animed-sprint3</text>
+
+  <!-- ACR -->
+  <rect x="352" y="250" width="272" height="214" rx="11" fill="#fff" stroke="#0078D4" stroke-width="2.5"/>
+  <path d="M352 261 a11 11 0 0 1 11 -11 h250 a11 11 0 0 1 11 11 v23 h-272 z" fill="#0078D4"/>
+  <text x="372" y="274" class="rotW">Azure Container Registry</text>
+  <text x="372" y="304" class="sub">acranimed566067.azurecr.io</text>
+  <rect x="372" y="318" width="232" height="58" rx="7" fill="#eef6fd" stroke="#9ec5e8"/>
+  <rect x="384" y="333" width="26" height="26" rx="4" fill="#0078D4"/>
+  <text x="422" y="343" class="rot" font-size="13">animed-api:1.0</text>
+  <text x="422" y="361" class="tiny">Java 17 · usuário não-root</text>
+  <rect x="372" y="386" width="232" height="58" rx="7" fill="#fff5ec" stroke="#f0b37a"/>
+  <rect x="384" y="401" width="26" height="26" rx="4" fill="#C2410C"/>
+  <text x="422" y="411" class="rot" font-size="13">oracle-xe:21</text>
+  <text x="422" y="429" class="tiny">importada para o registro</text>
+
+  <!-- kaniko -->
+  <rect x="352" y="580" width="272" height="128" rx="11" fill="#fbfcfd" stroke="#8b93a0" stroke-width="2" stroke-dasharray="7 4"/>
+  <text x="372" y="608" class="rot">ACI · aci-kaniko-build</text>
+  <text x="372" y="630" class="tiny">container temporário de build</text>
+  <text x="372" y="648" class="tiny">clona o GitHub, roda o Dockerfile</text>
+  <text x="372" y="666" class="tiny">e publica a imagem no ACR</text>
+  <text x="372" y="690" class="tinyM">removido ao terminar (libera cota)</text>
+
+  <!-- ACI API -->
+  <rect x="742" y="250" width="308" height="204" rx="11" fill="#fff" stroke="#0078D4" stroke-width="2.5"/>
+  <path d="M742 261 a11 11 0 0 1 11 -11 h286 a11 11 0 0 1 11 11 v23 h-308 z" fill="#0078D4"/>
+  <text x="762" y="274" class="rotW">ACI · aci-animed-api</text>
+  <text x="762" y="304" class="sub">Container da aplicação · porta 8080</text>
+  <rect x="762" y="318" width="268" height="120" rx="8" fill="#eef6fd" stroke="#9ec5e8"/>
+  <text x="776" y="340" class="rot" font-size="13">Spring Boot 3.3 · Java 17</text>
+  <text x="776" y="360" class="tiny">REST + painel Thymeleaf + Swagger</text>
+  <text x="776" y="378" class="tiny">JWT · Flyway aplica as 12 migrations</text>
+  <text x="776" y="402" class="tinyG">▸ processo roda como usuário “animed”</text>
+  <text x="776" y="422" class="tinyG">▸ senhas em variável de ambiente segura</text>
+
+  <!-- ACI Oracle -->
+  <rect x="742" y="546" width="308" height="200" rx="11" fill="#fff" stroke="#C2410C" stroke-width="2.5"/>
+  <path d="M742 557 a11 11 0 0 1 11 -11 h286 a11 11 0 0 1 11 11 v23 h-308 z" fill="#C2410C"/>
+  <text x="762" y="570" class="rotW">ACI · aci-animed-oracle</text>
+  <text x="762" y="600" class="sub">Container do banco · porta 1521</text>
+  <rect x="762" y="612" width="268" height="118" rx="8" fill="#fff5ec" stroke="#f0b37a"/>
+  <text x="776" y="634" class="rot" font-size="13">Oracle XE 21 · service CLYVOVET</text>
+  <text x="776" y="654" class="tiny">schema CLYVO</text>
+  <ellipse cx="798" cy="678" rx="20" ry="6.5" fill="#C2410C" opacity=".25"/>
+  <path d="M778 678 v24 a20 6.5 0 0 0 40 0 v-24" fill="#C2410C" opacity=".14"/>
+  <ellipse cx="798" cy="702" rx="20" ry="6.5" fill="none" stroke="#C2410C" opacity=".45"/>
+  <text x="832" y="680" class="tiny">TB_TUTOR (1)</text>
+  <text x="832" y="698" class="tiny">TB_PET (N) — FK ID_TUTOR</text>
+  <text x="832" y="716" class="tiny">+ vacina, consulta, pontuação</text>
+
+  <!-- Nota: por que kaniko -->
+  <rect x="1104" y="546" width="252" height="200" rx="10" fill="#fbfcfd" stroke="#c8d0d8"/>
+  <text x="1124" y="574" class="rot" font-size="13">Por que kaniko</text>
+  <text x="1124" y="598" class="tiny">ACR Tasks é bloqueado nesta</text>
+  <text x="1124" y="616" class="tiny">subscription (Azure for Students)</text>
+  <text x="1124" y="634" class="tiny">e as máquinas não têm Docker.</text>
+  <text x="1124" y="658" class="tiny">O kaniko constrói a imagem</text>
+  <text x="1124" y="676" class="tiny">dentro da própria Azure, a partir</text>
+  <text x="1124" y="694" class="tiny">do mesmo Dockerfile do repo.</text>
+  <text x="1124" y="720" class="tinyM">cota da região: 6 cores</text>
+  <text x="1124" y="736" class="tinyM">2 banco + 1 app + 2 build</text>
+
+  <!-- ===================== FLUXOS ===================== -->
+
+  <!-- 1: equipe -> Azure CLI -->
+  <path class="fluxo" d="M228 220 H330"/>
+  <circle cx="282" cy="220" r="12" fill="#0078D4"/><text x="282" y="224" class="num">1</text>
+
+  <!-- provisiona -->
+  <path class="prov" d="M470 180 V206"/>
+  <text x="486" y="198" class="tinyM">provisiona</text>
+
+  <!-- 2: docker hub -> ACR -->
+  <path class="fluxo" d="M760 180 V216 Q760 232 740 232 H508 Q488 232 488 248"/>
+  <circle cx="620" cy="232" r="12" fill="#0078D4"/><text x="620" y="236" class="num">2</text>
+
+  <!-- 3: github -> kaniko -->
+  <path class="fluxo" d="M228 360 H268 Q288 360 288 380 V644 H352"/>
+  <circle cx="288" cy="520" r="12" fill="#0078D4"/><text x="288" y="524" class="num">3</text>
+
+  <!-- 4: kaniko -> ACR (push) -->
+  <path class="fluxo" d="M488 580 V464"/>
+  <circle cx="488" cy="548" r="12" fill="#0078D4"/><text x="488" y="552" class="num">4</text>
+  <text x="506" y="552" class="tiny">push da imagem</text>
+
+  <!-- 5: ACR -> ACI API (pull) -->
+  <path class="fluxo" d="M624 347 H742"/>
+  <circle cx="683" cy="347" r="12" fill="#0078D4"/><text x="683" y="351" class="num">5</text>
+  <text x="632" y="336" class="tiny">pull</text>
+
+  <!-- 6: ACR -> ACI Oracle (pull) -->
+  <path class="fluxo" d="M624 415 H672 Q692 415 692 435 V644 H742"/>
+  <circle cx="692" cy="530" r="12" fill="#0078D4"/><text x="692" y="534" class="num">6</text>
+  <text x="640" y="406" class="tiny">pull</text>
+
+  <!-- 7: API -> Oracle -->
+  <path class="dados" d="M880 454 V546"/>
+  <circle cx="880" cy="500" r="12" fill="#ED145B"/><text x="880" y="504" class="num">7</text>
+  <text x="900" y="494" class="tinyP">JDBC 1521 — grava</text>
+  <text x="900" y="511" class="tinyP">TB_TUTOR e TB_PET</text>
+
+  <!-- 8: usuários -> API -->
+  <path class="dados" d="M1414 352 H1050"/>
+  <circle cx="1230" cy="352" r="12" fill="#ED145B"/><text x="1230" y="356" class="num">8</text>
+  <text x="1096" y="336" class="tinyP">HTTP 8080 no FQDN público do ACI</text>
+  <text x="1156" y="378" class="tinyP">não é localhost</text>
+</svg>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h2>Fluxo — o que acontece, na ordem</h2>
+    <table>
+      <tr><th>#</th><th>Passo</th></tr>
+      <tr><td class="n"><span class="badge">1</span></td><td>A equipe roda <code>criar-recursos-azure.ps1</code>. O Azure CLI cria o resource group, o registro e os container instances — nada pelo Portal.</td></tr>
+      <tr><td class="n"><span class="badge">2</span></td><td><code>az acr import</code> traz a imagem oficial do Oracle XE do Docker Hub para dentro do ACR.</td></tr>
+      <tr><td class="n"><span class="badge">3</span></td><td>Sobe um container kaniko que clona este repositório do GitHub — o código-fonte é o contexto do build.</td></tr>
+      <tr><td class="n"><span class="badge">4</span></td><td>O kaniko executa o <code>Dockerfile</code>, compila o JAR e publica <code>animed-api:1.0</code> no ACR. Depois é removido.</td></tr>
+      <tr><td class="n"><span class="badge">5</span></td><td>O ACI da aplicação puxa a imagem da API do ACR e sobe o container na porta 8080.</td></tr>
+      <tr><td class="n"><span class="badge">6</span></td><td>O ACI do banco puxa a imagem do Oracle do ACR e sobe o container na porta 1521.</td></tr>
+      <tr><td class="n"><span class="badge" style="background:#ED145B">7</span></td><td>A aplicação conecta no banco por JDBC. O Flyway cria o schema e o CRUD passa a gravar em <code>TB_TUTOR</code> e <code>TB_PET</code>.</td></tr>
+      <tr><td class="n"><span class="badge" style="background:#ED145B">8</span></td><td>Tutor e veterinário acessam pelo FQDN público do ACI — a solução não roda em localhost.</td></tr>
+    </table>
   </div>
+
+  <div class="card">
+    <h2>Decisões de arquitetura</h2>
+    <table>
+      <tr><th>Ponto</th><th>Decisão e motivo</th></tr>
+      <tr><td><strong>Opção da entrega</strong></td><td>ACR + ACI. Aplicação <em>e</em> banco em container — sem misturar com App Service ou banco PaaS.</td></tr>
+      <tr><td><strong>Build sem Docker</strong></td><td>ACR Tasks é bloqueado nesta subscription e as máquinas não têm Docker Desktop. O kaniko constrói a imagem dentro da própria Azure.</td></tr>
+      <tr><td><strong>Container não-root</strong></td><td>O <code>Dockerfile</code> cria o usuário <code>animed</code> e declara <code>USER animed</code>: o processo Java não tem privilégio administrativo.</td></tr>
+      <tr><td><strong>Segredos</strong></td><td>Senha do banco e segredo JWT entram como <code>--secure-environment-variables</code>: não estão no código nem aparecem no <code>az container show</code>.</td></tr>
+      <tr><td><strong>Schema versionado</strong></td><td>O Flyway aplica 12 migrations na primeira subida — o banco nasce pronto e reproduzível, sem DDL manual.</td></tr>
+      <tr><td><strong>Dois containers separados</strong></td><td>Banco e aplicação reiniciam de forma independente; o ACI do Oracle guarda o estado que o vídeo comprova por SELECT.</td></tr>
+      <tr><td><strong>Região</strong></td><td><code>brazilsouth</code>, dentro da cota de 6 cores do Azure for Students (2 banco + 1 app + 2 do build temporário).</td></tr>
+    </table>
+  </div>
+</div>
+</div>
 </body>
 </html>
