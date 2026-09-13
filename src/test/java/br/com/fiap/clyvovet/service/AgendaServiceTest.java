@@ -87,9 +87,22 @@ class AgendaServiceTest {
 
         assertThatThrownBy(() -> service.registrarFalta(1L))
                 .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("ainda não chegou");
+                .hasMessageContaining("ainda não pode ser dado como falta");
 
         verify(gamificacaoService, never()).estornarAcao(anyLong(), any(), any());
+    }
+
+    @Test
+    @DisplayName("concluir antes da hora é recusado")
+    void concluirAntesDaHoraEhRecusado() {
+        consulta.setDataHora(LocalDateTime.now().plusHours(3));
+
+        assertThatThrownBy(() -> service.concluir(1L,
+                new AgendaDTO.Conclusao(null, null, "Animal saudável", null)))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("ainda não pode ser concluído");
+
+        verify(gamificacaoService, never()).registrarAcao(anyLong(), any(), any());
     }
 
     @Test
