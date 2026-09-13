@@ -1,533 +1,305 @@
-# 🐾 Animed API
+# Animed API — Sprint 3 (DevOps Tools & Cloud Computing)
 
-> **API REST de cuidado contínuo e gamificação para pets** - Challenge FIAP 2026
+API REST + painel web de **cuidado contínuo e gamificação para pets**. Challenge FIAP 2026.
 
-Sistema backend que materializa a proposta da **Animed**: transformar a jornada de saúde do pet de um modelo *episódico e reativo* em uma experiência **contínua, preventiva e gamificada**, conectando tutores, clínicas e pet shops parceiros num ecossistema único.
+**Opção de entrega:** ACR + ACI (app e banco **100% containerizados**).  
+Nada de App Service. Nada de banco PaaS misturado com container.
 
----
-
-## 📋 Sumário
-
-- [Visão Geral](#-visão-geral)
-- [Diferencial — Sistema de Gamificação](#-diferencial--sistema-de-gamificação)
-- [Stack Tecnológica](#️-stack-tecnológica)
-- [Arquitetura](#-arquitetura)
-- [Modelo de Domínio](#-modelo-de-domínio)
-- [Como Executar](#-como-executar)
-- [Documentação das Rotas](#-documentação-das-rotas)
-- [Segurança e perfis](#-segurança-e-perfis)
-- [Testes](#-testes)
-- [Equipe](#-equipe)
+| | |
+|---|---|
+| Repositório | https://github.com/kaiky06301/animed-api |
+| Diagrama | [docs/diagrama-arquitetura.html](docs/diagrama-arquitetura.html) |
+| DDL do banco | [script_bd.sql](script_bd.sql) |
+| PDF da entrega | [docs/entrega-pdf.html](docs/entrega-pdf.html) |
 
 ---
 
-## 🎯 Visão Geral
+## 1. O que a aplicação faz
 
-A **Animed API** resolve um problema crítico do mercado pet brasileiro: a **descontinuidade do cuidado**. Hoje, tutores só interagem com o ecossistema veterinário em momentos pontuais (vacinas, emergências), o que gera:
+A Animed transforma a saúde do pet de um modelo **episódico** (só vai ao vet na emergência) em uma jornada **contínua**: o tutor cadastra o pet, registra vacina, consulta e medicação, e ganha pontos. Os pontos sobem o nível (Básico → Cuidador → Premium) e liberam desconto em pet shops parceiros.
 
-- ❌ Pior cuidado preventivo
-- ❌ Menor LTV para clínicas
-- ❌ Baixa fidelização
-- ❌ Histórico clínico fragmentado
+O núcleo persistido no Oracle é **Tutor + Pet** (1:N). As demais tabelas (vacina, consulta, pontuação) giram em torno desse núcleo.
 
-### Nossa Solução
+CRUD completo nas duas tabelas: `POST/GET/PUT/DELETE` em `/api/tutores` e `/api/pets`. Também há painel web em `/login` (Thymeleaf).
 
-Uma **plataforma gamificada** onde cada ação de cuidado vira pontos, descontos e benefícios — alinhando interesses de tutores, clínicas e pet shops.
+## 2. Benefícios para o negócio
 
-### Benefícios para o Negócio
-
-| Stakeholder | Benefício |
-|-------------|-----------|
-| **Tutor** | Cuidado preventivo recompensado, descontos progressivos, organização da saúde do pet |
-| **Pet** | Maior frequência de check-ups, vacinas em dia, qualidade de vida |
-| **Clínicas** | Recorrência, fidelização, maior LTV, base de dados longitudinal |
-| **Pet Shops** | Mais vendas via tráfego qualificado, modelo de baixo risco (taxa+comissão) |
-| **Animed** | Comissão sobre vendas + assinatura mensal de parceiros + plano premium do usuário |
+| Quem | Problema hoje | O que a Animed entrega |
+|------|----------------|------------------------|
+| Tutor | Esquece vacina e retorno | Rotina de cuidado recompensada com pontos |
+| Pet | Cuidado só na crise | Mais check-up e vacina em dia |
+| Clínica | Paciente some depois da consulta | Recorrência e histórico longitudinal |
+| Pet shop | Compra avulsa | Tráfego de tutor com desconto progressivo |
+| Animed | Sem recorrência | Comissão na venda + assinatura do parceiro |
 
 ---
 
-## 🎮 Diferencial — Sistema de Gamificação
+## 3. Stack e opção de nuvem
 
-### Como o tutor ganha pontos
+| Camada | Tecnologia |
+|--------|------------|
+| Linguagem | Java 17 |
+| API / Web | Spring Boot 3.3.4 + JPA + Flyway + JWT + Thymeleaf + Swagger |
+| Banco (nuvem) | Oracle XE 21 **em container** (ACI) |
+| Imagens | Azure Container Registry |
+| Execução | Azure Container Instance (API + Oracle) |
+| Build | Docker + Azure CLI |
 
-| Ação | Pontos | Quem registra |
-|------|-------:|---------------|
-| Cadastrar o primeiro pet | 50 | tutor |
-| Perfil completo do pet | 50 | tutor |
-| Foto do primeiro pet | 15 | tutor |
-| Dose de medicamento | 15 | tutor |
-| Atualização de peso | 5 | tutor |
-| Agendar atendimento | 10 | tutor |
-| Compra em parceiro | 1 ponto / R$ 10 | tutor |
-| Vacina aplicada | 25 | **veterinário** |
-| Consulta realizada | 20 | **veterinário** |
-| Check-up concluído | 30 | **veterinário** |
+H2 existe **somente** para `mvn test` na máquina. Entrega = Oracle no ACI.
 
-### Sistema de Níveis
+> Azure for Students **bloqueia ACR Tasks** (`az acr build`). O caminho oficial desta entrega é `docker build` + `docker push`.
 
-| Nível | Pontos | Desconto | Moedas |
-|-------|--------|---------:|--------|
-| 🥉 **Básico** | 0 – 299 | 0% | bloqueadas |
-| 🥈 **Cuidador** | 300 – 1.199 | 10% | bloqueadas |
-| 🥇 **Tutor Premium** | 1.200+ | 15% | **liberadas** |
+---
 
-Cada crédito de pontos gera também **moedas**, um saldo gastável a dez centavos por unidade. Elas só são liberadas no Tutor Premium e abatem no máximo metade do valor de uma compra.
+## 4. Arquitetura (recursos e fluxo)
 
-### Como funciona o desconto na prática
+Abra [docs/diagrama-arquitetura.html](docs/diagrama-arquitetura.html) e tire o print.
 
 ```
-Produto: Ração Premium R$ 219,90
-
-Tutor BÁSICO    → paga R$ 219,90   (0% de desconto)
-Tutor CUIDADOR  → paga R$ 197,91   (10%)  → comissão de 5% = R$ 9,90
-Tutor PREMIUM   → paga R$ 186,92   (15%)  → comissão de 5% = R$ 9,35
-Tutor PREMIUM   → paga R$ 149,54   (15% + 374 moedas)
+ Desenvolvedor                 Azure
+ ┌───────────┐   push    ┌──────────┐
+ │  GitHub   │──────────▶│   ACR    │  imagens: animed-api e oracle-xe
+ └───────────┘           └────┬─────┘
+                              │ pull
+                     ┌────────┴────────┐
+                     ▼                 ▼
+              ┌────────────┐    ┌─────────────┐
+              │ ACI da API │───▶│ ACI Oracle  │
+              │ (não-root) │    │ porta 1521  │
+              └─────┬──────┘    └─────────────┘
+                    │
+              Tutor / Vet (Swagger e /login :8080)
 ```
 
-### Como a economia se defende
-
-Uma gamificação ingênua vira fonte infinita de pontos. As travas implementadas:
-
-| Brecha | Trava | Onde |
-|--------|-------|------|
-| Cadastrar vários pets para repetir o bônus | Só o primeiro pet pontua; limite de 5 | `PetService` |
-| Trocar a foto sem parar | Uma vez, e só no primeiro pet | `PetService.registrarFoto` |
-| Digitar peso repetidamente | Um crédito a cada 7 dias, por pet | `PetService.registrarPeso` |
-| Registrar dose em série | Só pontua respeitando o intervalo da receita | `MedicamentoService` |
-| Marcar horário só para pontuar | Falta estorna; cancelamento custa 30 pontos | `AgendaService` |
-| Gastar moedas zerando a compra | Abatimento limitado a metade do valor | `TransacaoParceiroService` |
-
-O registro sempre acontece — o histórico clínico precisa refletir a realidade. O que as regras limitam é o **crédito**.
+- **GitHub** — código e este README (o vídeo clona daqui).
+- **ACR** — guarda as duas imagens Docker.
+- **ACI da API** — sobe o container da Animed com usuário `animed` (não é root).
+- **ACI Oracle** — banco em container na nuvem. A API grava Tutor e Pet aqui.
+- Senha, JDBC e JWT entram por **variável de ambiente**, nunca pelo código.
 
 ---
 
-## 🛠️ Stack Tecnológica
+## 5. Como testar e publicar (siga esta ordem no vídeo)
 
-- **Java 17**
-- **Spring Boot 3.3.4**
-  - Spring Web (REST)
-  - **Spring Security** (JWT na API, formulário e sessão na web)
-  - **Thymeleaf** (camada de visualização)
-  - Spring Data JPA
-  - Spring Validation (Bean Validation)
-  - Spring Cache (Caffeine)
-  - Spring HATEOAS (Nível 3 de Maturidade Richardson)
-- **Oracle Database** (produção FIAP) + **H2** (dev local)
-- **Flyway** (migrations versionadas)
-- **Lombok**
-- **SpringDoc OpenAPI 3** (Swagger UI)
-- **Maven**
+### 5.1 Pré-requisitos
 
----
+- Git, Java 17, Azure CLI (`az login`)
+- Docker Desktop (obrigatório neste subscription: o `az acr build` é bloqueado)
+- Conta Azure com permissão para criar Resource Group, ACR e ACI
 
-## 🏗️ Arquitetura
-
-```
-┌─────────────────┐
-│   Controller    │  ← REST endpoints, Swagger, HATEOAS
-└────────┬────────┘
-         │
-┌────────▼────────┐
-│     Service     │  ← Regra de negócio, gamificação, cache
-└────────┬────────┘
-         │
-┌────────▼────────┐
-│   Repository    │  ← Spring Data JPA + JPQL
-└────────┬────────┘
-         │
-┌────────▼────────┐
-│   Entity (JPA)  │  ← Modelo de domínio mapeado
-└────────┬────────┘
-         │
-┌────────▼────────┐
-│  Oracle / H2    │
-└─────────────────┘
-```
-
-### Padrões aplicados
-
-- **DTO Pattern** — separação entre modelo de domínio e API
-- **Builder Pattern** (via Lombok) — construção fluente de entidades
-- **Repository Pattern** — abstração de persistência
-- **Dependency Injection** — via construtor (`@RequiredArgsConstructor`)
-- **Global Exception Handler** — padronização de erros
-
----
-
-## 📊 Modelo de Domínio
-
-### Entidades principais
-
-| Entidade | Descrição |
-|----------|-----------|
-| `Tutor` | Responsável pelo pet, possui pontos e nível de gamificação |
-| `Pet` | Animal cadastrado (Cachorro, Gato, etc.) com histórico clínico |
-| `Vacina` | Registro de vacinação aplicada no pet |
-| `Consulta` | Agendamento/registro de consulta veterinária |
-| `PetShop` | Parceiro B2B (taxa mensal + comissão por venda) |
-| `TransacaoParceiro` | Compra realizada por tutor em pet shop |
-| `HistoricoPontuacao` | Auditoria de todas as ações que renderam pontos, com estornos |
-| `Usuario` | Credencial de acesso, com perfil TUTOR ou DOUTOR |
-| `Medicamento` | Prescrição do veterinário: remédio, intervalo e duração |
-| `DoseMedicamento` | Dose efetivamente administrada pelo tutor |
-
-### Relacionamentos
-
-```
-Tutor    (1) ──── (N) Pet
-Tutor    (1) ──── (N) HistoricoPontuacao
-Tutor    (1) ──── (N) TransacaoParceiro
-Usuario  (N) ──── (1) Tutor            credencial do tutor
-Pet      (1) ──── (N) Vacina
-Pet      (1) ──── (N) Consulta
-Pet      (1) ──── (N) Medicamento
-Medicamento (1) ─ (N) DoseMedicamento
-Consulta (N) ──── (1) Usuario          veterinário responsável
-PetShop  (1) ──── (N) TransacaoParceiro
-PetShop  (1) ──── (N) Consulta
-```
-
-> 📎 **Schema completo para executar:** [`docs/schema-completo.sql`](docs/schema-completo.sql)
-> 📎 **Referência das tabelas, tipos e armadilhas:** [`docs/BANCO-DE-DADOS.md`](docs/BANCO-DE-DADOS.md)
-> 📎 Diagrama de classes detalhado em `docs/DIAGRAMA_CLASSES.md`
-> 📎 Diagrama Entidade-Relacionamento em `docs/DER.png` (gerado pela equipe de Database no Oracle Data Modeler)
-
----
-
-## 🚀 Como Executar
-
-### Pré-requisitos
-
-- Java 17+
-- Maven 3.8+
-- Oracle XE rodando localmente **OU** banco da FIAP (`oracle.fiap.com.br:1521:ORCL`)
-
-### Passo 1 — Clonar o repositório
+### 5.2 Clonar o repositório (obrigatório)
 
 ```bash
-git clone https://github.com/<usuario>/animed-api.git
+git clone https://github.com/kaiky06301/animed-api.git
 cd animed-api
 ```
 
-### Passo 2 — Configurar credenciais (Oracle FIAP)
+### 5.3 Rodar os testes da solução
 
-Edite `src/main/resources/application-oracle.properties`:
+Windows:
 
-```properties
-spring.datasource.username=RMxxxxxx       # seu RM
-spring.datasource.password=xxxxxx         # geralmente o RM sem letras
-spring.jpa.properties.hibernate.default_schema=RMxxxxxx
+```bat
+mvnw.cmd test
 ```
 
-### Passo 3 — Rodar com Oracle (default)
-
-```bash
-./mvnw spring-boot:run
-```
-
-### Passo 3 (alternativa) — Rodar com H2 (testes locais rápidos)
-
-```bash
-./mvnw spring-boot:run -Dspring-boot.run.profiles=h2
-```
-
-H2 Console: http://localhost:8080/h2-console
-
-### Passo 4 — Acessar a aplicação
-
-| O quê | Endereço |
-|-------|----------|
-| **Aplicação web** | http://localhost:8080/login |
-| Documentação Swagger | http://localhost:8080/swagger-ui.html |
-| Console H2 (perfil `h2`) | http://localhost:8080/h2-console |
-
-#### Contas de demonstração
-
-| Perfil | E-mail | Senha |
-|--------|--------|-------|
-| Tutor | `tutor@animed.com.br` | `animed123` |
-| Veterinário | `doutor@animed.com.br` | `animed123` |
-
-Criadas na primeira execução pelo `SeedUsuariosConfig`, com a senha gravada
-em hash BCrypt — nenhum hash fica versionado no repositório.
-
----
-
-## 🖥️ Aplicação Web
-
-A camada de visualização é servida pelo próprio Spring Boot, com **Thymeleaf**.
-Ela não tem regra própria: consome os mesmos *services* que a API REST usa, para
-que a regra de negócio viva num lugar só e não divirja entre a web e o aplicativo.
-
-### Telas
-
-| Rota | Perfil | O que faz |
-|------|--------|-----------|
-| `/login` | público | Autenticação por formulário; cada perfil cai no próprio painel |
-| `/painel/tutor` | TUTOR | Pontuação, nível, desconto, moedas e os pets do tutor |
-| `/painel/tutor/agendar` | TUTOR | Escolhe pet, dia, horário livre e veterinário |
-| `/painel/veterinario` | DOUTOR | Agenda do dia, com navegação entre datas |
-| `/painel/veterinario/atendimentos/{id}/concluir` | DOUTOR | Diagnóstico, conduta, orientação e retorno |
-| `/painel/veterinario/pacientes` | DOUTOR | Pacientes da clínica, com busca |
-
-### Dois fluxos completos
-
-**1. Agendar atendimento (tutor)** — a tela lista apenas horários realmente
-livres, oferece escolher o veterinário ou deixar a clínica indicar o que está
-com o dia mais tranquilo, e recusa marcação que quebre as regras (dois
-atendimentos para o mesmo pet no dia, ou o tutor em dois lugares ao mesmo
-tempo). Confirmado, o tutor recebe os pontos do agendamento.
-
-**2. Concluir atendimento (veterinário)** — registra diagnóstico, conduta e
-orientação, credita os pontos ao tutor e, se o caso pedir, marca o retorno na
-agenda do próprio profissional. Quando o paciente não aparece, o veterinário
-registra a falta e os pontos do agendamento são estornados.
-
-Em ambos, o erro de regra volta como mensagem na tela, não como página de erro.
-
-### Segurança da web
-
-A aplicação tem **duas cadeias de segurança separadas**:
-
-| Cadeia | Alcance | Autenticação |
-|--------|---------|--------------|
-| `apiFilterChain` (`@Order(1)`) | `/api/**` | JWT, sem sessão — é o que o aplicativo mobile consome |
-| `webFilterChain` (`@Order(2)`) | páginas | Formulário e sessão, com CSRF ativo |
-
-O navegador não tem onde guardar um token com segurança, e o aplicativo não
-tem sessão: por isso cada um usa o mecanismo adequado. As rotas são separadas
-por perfil — `/painel/tutor` só aceita TUTOR, `/painel/veterinario` só aceita
-DOUTOR — e quem não estiver autenticado não alcança nenhuma das duas.
-
----
-
-## 📡 Documentação das Rotas
-
-### 🧑 Tutores (`/api/tutores`)
-
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `POST` | `/api/tutores` | Criar tutor |
-| `GET` | `/api/tutores/{id}` | Buscar por ID (com HATEOAS) |
-| `GET` | `/api/tutores` | Listar (paginado, ordenável) |
-| `GET` | `/api/tutores/buscar?nome=` | Buscar por nome (LIKE) |
-| `GET` | `/api/tutores/por-nivel/{nivel}` | Filtrar por nível de gamificação |
-| `GET` | `/api/tutores/ranking` | Ranking de pontuação |
-| `PUT` | `/api/tutores/{id}` | Atualizar |
-| `DELETE` | `/api/tutores/{id}` | Deletar |
-
-### 🐶 Pets (`/api/pets`)
-
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `POST` | `/api/pets` | Cadastrar pet (gera pontos automáticos) |
-| `GET` | `/api/pets/{id}` | Buscar por ID |
-| `GET` | `/api/pets` | Listar |
-| `GET` | `/api/pets/por-tutor/{idTutor}` | Pets de um tutor |
-| `GET` | `/api/pets/por-especie/{especie}` | Filtrar por espécie |
-| `GET` | `/api/pets/buscar?nome=` | Buscar por nome |
-| `PUT` | `/api/pets/{id}` | Atualizar |
-| `DELETE` | `/api/pets/{id}` | Deletar |
-
-### 💉 Vacinas (`/api/vacinas`)
-
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `POST` | `/api/vacinas` | Registrar vacinação (+30 pontos) |
-| `GET` | `/api/vacinas/{id}` | Buscar por ID |
-| `GET` | `/api/vacinas` | Listar |
-| `GET` | `/api/vacinas/por-pet/{idPet}` | Vacinas de um pet |
-| `GET` | `/api/vacinas/por-tutor/{idTutor}` | Vacinas de todos pets de um tutor |
-| `PUT` | `/api/vacinas/{id}` | Atualizar |
-| `DELETE` | `/api/vacinas/{id}` | Deletar |
-
-### 🩺 Consultas (`/api/consultas`)
-
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `POST` | `/api/consultas` | Agendar consulta |
-| `GET` | `/api/consultas/{id}` | Buscar por ID |
-| `GET` | `/api/consultas` | Listar |
-| `GET` | `/api/consultas/por-pet/{idPet}` | Consultas de um pet |
-| `GET` | `/api/consultas/por-tutor/{idTutor}` | Consultas de um tutor |
-| `GET` | `/api/consultas/por-status/{status}` | Filtrar por status |
-| `PUT` | `/api/consultas/{id}` | Atualizar (REALIZADA dispara +60 pontos) |
-| `DELETE` | `/api/consultas/{id}` | Deletar |
-
-### 🏪 Pet Shops (`/api/petshops`)
-
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `POST` | `/api/petshops` | Cadastrar parceiro |
-| `GET` | `/api/petshops/{id}` | Buscar por ID |
-| `GET` | `/api/petshops` | Listar |
-| `GET` | `/api/petshops/ativos` | Apenas ativos |
-| `GET` | `/api/petshops/por-localizacao?cidade=&uf=` | Por cidade/UF |
-| `GET` | `/api/petshops/buscar?nome=` | Por nome fantasia |
-| `PUT` | `/api/petshops/{id}` | Atualizar |
-| `DELETE` | `/api/petshops/{id}` | Deletar |
-
-### 💳 Transações (`/api/transacoes`)
-
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `POST` | `/api/transacoes` | Registrar compra (aplica desconto auto) |
-| `GET` | `/api/transacoes/{id}` | Buscar por ID |
-| `GET` | `/api/transacoes` | Listar |
-| `GET` | `/api/transacoes/por-tutor/{idTutor}` | Transações de um tutor |
-| `GET` | `/api/transacoes/por-petshop/{idPetShop}` | Transações de um pet shop |
-| `GET` | `/api/transacoes/relatorios/comissao-petshop/{id}` | Total de comissão |
-| `GET` | `/api/transacoes/relatorios/gasto-tutor/{id}` | Total gasto |
-| `DELETE` | `/api/transacoes/{id}` | Estornar |
-
-### 🔐 Autenticação (`/api/auth`)
-
-| Método | Rota | Descrição | Perfil |
-|--------|------|-----------|--------|
-| POST | `/registrar` | Cria conta de tutor e o registro em `TB_TUTOR` | público |
-| POST | `/login` | Devolve o token JWT e os dados da sessão | público |
-| PATCH | `/senha` | Troca a própria senha, exigindo a atual | autenticado |
-
-### 📅 Agenda (`/api/agenda`)
-
-| Método | Rota | Descrição | Perfil |
-|--------|------|-----------|--------|
-| GET | `/disponibilidade?data=` | Horários livres do dia, já sem os ocupados | ambos |
-| GET | `/disponibilidade/mes?ano=&mes=` | Dias do mês com vaga, para o calendário | ambos |
-| GET | `/dia?data=` | Agenda do veterinário, com os atendimentos | ambos |
-| GET | `/atendimentos/{id}` | Detalhe: profissional, endereço, orientação | ambos |
-| POST | `/agendamentos` | Marca o horário e credita os pontos | tutor |
-| PATCH | `/atendimentos/{id}/cancelar` | Libera o horário e estorna 30 pontos | tutor |
-| PATCH | `/atendimentos/{id}/concluir` | Fecha o atendimento, com diagnóstico e retorno | **doutor** |
-| PATCH | `/atendimentos/{id}/falta` | Não comparecimento: estorna os pontos | **doutor** |
-
-### 💊 Medicamentos (`/api/medicamentos`)
-
-| Método | Rota | Descrição | Perfil |
-|--------|------|-----------|--------|
-| POST | `/` | Prescreve: remédio, intervalo e duração | **doutor** |
-| GET | `/por-pet/{idPet}` | Receitas do pet, com atraso e próxima dose | ambos |
-| POST | `/{id}/doses` | Registra a dose dada; pontua se no horário | tutor |
-| PATCH | `/{id}/concluir` | Tutor confirma o fim do tratamento | tutor |
-| DELETE | `/{id}` | Encerra o tratamento hoje | **doutor** |
-
-### 🧴 Cuidados (`/api/cuidados`)
-
-| Método | Rota | Descrição | Perfil |
-|--------|------|-----------|--------|
-| POST | `/` | Registra pesagem e demais cuidados do dia a dia | tutor |
-
-### 📜 Histórico (`/api/historico-pontuacao`)
-
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `GET` | `/api/historico-pontuacao` | Listar todo histórico |
-| `GET` | `/api/historico-pontuacao/por-tutor/{id}` | Por tutor |
-| `GET` | `/api/historico-pontuacao/por-tipo/{tipo}` | Por tipo de ação |
-
----
-
-## 🔒 Segurança e perfis
-
-A API usa **Spring Security com JWT**, sem sessão no servidor. O token carrega o perfil, e as rotas são separadas por ele.
-
-```mermaid
-graph LR
-    REQ["Requisição"] --> FILTRO["JwtAuthenticationFilter"]
-    FILTRO -->|sem token| E401["401 Autenticação necessária"]
-    FILTRO -->|token válido| REGRAS{"Perfil exigido"}
-    REGRAS -->|ok| CTRL["Controller"]
-    REGRAS -->|perfil errado| E403["403 Acesso negado"]
-```
-
-Há atos que **só o veterinário pratica**, e isso não é preferência de produto: a Resolução CFMV nº 1.321/2020 define a vacinação como ato privativo do médico-veterinário. O mesmo raciocínio vale para prescrever medicamento e concluir atendimento.
-
-| Ação | TUTOR | DOUTOR |
-|------|:-----:|:------:|
-| Cadastrar e editar os próprios pets | ✅ | ✅ |
-| Registrar cuidado do dia a dia e dose | ✅ | — |
-| Marcar e cancelar atendimento | ✅ | — |
-| Aplicar vacina | **403** | ✅ |
-| Prescrever medicamento | **403** | ✅ |
-| Concluir atendimento e registrar falta | **403** | ✅ |
-| Cadastrar tutores e pet shops | **403** | ✅ |
-
-### Contas de demonstração
-
-Criadas por `SeedUsuariosConfig` quando `animed.seed-usuarios=true`. As senhas são geradas com BCrypt em tempo de execução — nenhum hash fica versionado.
-
-| Perfil | E-mail | Senha |
-|--------|--------|-------|
-| Tutor | `tutor@animed.com.br` | `animed123` |
-| Veterinária | `doutor@animed.com.br` | `animed123` |
-
----
-
-## 🧪 Testes
+Linux / Mac:
 
 ```bash
 ./mvnw test
 ```
 
-São **12 testes**, concentrados nas regras que dependem do relógio e que seriam inviáveis de conferir à mão:
+Os testes JUnit sobem com H2 em memória. Eles **não** usam o Oracle da nuvem.
 
-| Classe | O que verifica |
-|--------|----------------|
-| `MedicamentoServiceTest` | Dose no horário, dentro da tolerância de 20 min, adiantada e pulada — e que a dose é sempre gravada, pontuando ou não |
-| `AgendaServiceTest` | Falta estorna os pontos; não pode ser registrada antes da hora, sobre atendimento já realizado nem duas vezes |
+### 5.4 Login na Azure e senhas (não vão para o Git)
+
+```bash
+az login
+az account show
+```
+
+```bash
+export ORACLE_PASSWORD='TroqueEstaSenha1'
+export APP_USER_PASSWORD='TroqueEstaSenha1'
+export ANIMED_JWT_SECRET='animed-segredo-base64-nao-commitar'
+export ACR_SERVER='acranimedXXXX.azurecr.io'
+```
+
+PowerShell:
+
+```powershell
+az login
+$env:ORACLE_PASSWORD = 'TroqueEstaSenha1'
+$env:APP_USER_PASSWORD = 'TroqueEstaSenha1'
+$env:ANIMED_JWT_SECRET = 'animed-segredo-base64-nao-commitar'
+$env:ACR_SERVER = 'acranimedXXXX.azurecr.io'
+```
+
+### 5.5 Criar os recursos na nuvem (tudo via Azure CLI)
+
+**Caminho A — um script só:**
+
+```powershell
+.\scripts\criar-recursos-azure.ps1
+```
+
+Cloud Shell / bash:
+
+```bash
+bash scripts/criar-recursos-azure.sh
+```
+
+**Caminho B — comandos um a um.** Troque `XXXX` por um número único:
+
+```bash
+az group create --name rg-animed-sprint3 --location brazilsouth
+
+az acr create --resource-group rg-animed-sprint3 --name acranimedXXXX --sku Basic --admin-enabled true
+
+az acr import --name acranimedXXXX --source docker.io/gvenzl/oracle-xe:21-slim --image oracle-xe:21 --force
+
+az acr login --name acranimedXXXX
+docker build -t animed-api:1.0 .
+docker tag animed-api:1.0 acranimedXXXX.azurecr.io/animed-api:1.0
+docker push acranimedXXXX.azurecr.io/animed-api:1.0
+```
+
+Ou: `export ACR_SERVER=acranimedXXXX.azurecr.io` e `bash scripts/docker-build-push.sh`.
+
+Subir o banco e a API no ACI (usuário/senha do ACR: `az acr credential show --name acranimedXXXX`):
+
+```bash
+az container create \
+  --resource-group rg-animed-sprint3 \
+  --name aci-animed-oracle \
+  --image acranimedXXXX.azurecr.io/oracle-xe:21 \
+  --registry-login-server acranimedXXXX.azurecr.io \
+  --registry-username <usuario-acr> \
+  --registry-password <senha-acr> \
+  --cpu 2 --memory 3.5 --ports 1521 --os-type Linux \
+  --dns-name-label animed-oracle-XXXX \
+  --environment-variables \
+    ORACLE_PASSWORD=$ORACLE_PASSWORD \
+    ORACLE_DATABASE=CLYVOVET \
+    APP_USER=clyvo \
+    APP_USER_PASSWORD=$APP_USER_PASSWORD
+
+# Espere ~4 minutos o Oracle ficar pronto. Depois:
+
+az container create \
+  --resource-group rg-animed-sprint3 \
+  --name aci-animed-api \
+  --image acranimedXXXX.azurecr.io/animed-api:1.0 \
+  --registry-login-server acranimedXXXX.azurecr.io \
+  --registry-username <usuario-acr> \
+  --registry-password <senha-acr> \
+  --cpu 1 --memory 1.5 --ports 8080 --os-type Linux \
+  --dns-name-label animed-api-XXXX \
+  --environment-variables \
+    SPRING_PROFILES_ACTIVE=oracle \
+    SPRING_DATASOURCE_URL=jdbc:oracle:thin:@//animed-oracle-XXXX.brazilsouth.azurecontainer.io:1521/CLYVOVET \
+    SPRING_DATASOURCE_USERNAME=clyvo \
+    SPRING_DATASOURCE_PASSWORD=$APP_USER_PASSWORD \
+    ORACLE_SCHEMA=CLYVO \
+    ANIMED_JWT_SECRET=$ANIMED_JWT_SECRET
+```
+
+O container da API **não roda como root**: o `Dockerfile` cria o usuário `animed` e usa `USER animed`.
+
+### 5.6 Conferir os recursos no Portal
+
+No Portal do Azure, abra o grupo `rg-animed-sprint3` e mostre:
+
+- Azure Container Registry com as imagens `animed-api:1.0` e `oracle-xe:21`
+- Container Instance `aci-animed-oracle` (Running)
+- Container Instance `aci-animed-api` (Running)
+
+```
+http://<fqdn-da-api>:8080/login
+http://<fqdn-da-api>:8080/swagger-ui.html
+http://<fqdn-da-api>:8080/actuator/health
+```
+
+```bash
+az container show -g rg-animed-sprint3 -n aci-animed-api --query ipAddress.fqdn -o tsv
+az container show -g rg-animed-sprint3 -n aci-animed-oracle --query ipAddress.fqdn -o tsv
+```
+
+### 5.7 CRUD + evidência no banco (sem corte no vídeo)
+
+Contas de demo (criadas na subida da API):
+
+| Perfil | E-mail | Senha |
+|--------|--------|--------|
+| Veterinário | doutor@animed.com.br | animed123 |
+| Tutor | tutor@animed.com.br | animed123 |
+
+1. Abra `/login` **ou** o Swagger (`POST /api/auth/login` com o doutor).
+2. **Inserir** um tutor (`POST /api/tutores`) e um pet (`POST /api/pets`) ligado a esse tutor.
+3. No Oracle, rode o `SELECT` e mostre as linhas novas.
+4. **Atualizar** tutor e pet (`PUT`). SELECT de novo.
+5. **Consultar** (`GET` e SELECT).
+6. **Excluir** o pet e o tutor de teste (`DELETE`). SELECT mostrando que sumiram.
+
+SELECT no container do Oracle:
+
+```bash
+az container exec -g rg-animed-sprint3 -n aci-animed-oracle --exec-command \
+  "sqlplus -s clyvo/${APP_USER_PASSWORD}@//localhost:1521/CLYVOVET"
+```
+
+```sql
+SELECT ID_TUTOR, NOME, EMAIL, NIVEL FROM TB_TUTOR ORDER BY ID_TUTOR;
+SELECT ID_PET, NOME, ESPECIE, RACA, ID_TUTOR FROM TB_PET ORDER BY ID_PET;
+```
+
+Ou conecte o DBeaver/SQL Developer no FQDN do ACI Oracle, porta `1521`, service `CLYVOVET`, usuário `clyvo`.
+
+O Flyway já aplica as migrations e o seed (Marina, Carlos, Thor, Mia, …) na primeira subida. Isso cobre as **2+ linhas significativas** nas tabelas-núcleo. O CRUD do vídeo cria/edita/apaga **outras** linhas para a câmera.
 
 ---
 
-## ✅ Requisitos Atendidos (Rubrica FIAP)
+## 6. Scripts entregues
 
-### Sprint 3
-
-| Requisito | Pts | Status | Onde encontrar |
-|-----------|----:|--------|----------------|
-| **Frontend** (camada de visualização) | 30 | ✅ | `templates/`, `PainelController`, `PainelAcoesController` |
-| **Flyway** | 20 | ✅ | `db/migration/`, V1 a V12 |
-| **Spring Security** — 2 perfis, rotas protegidas | 30 | ✅ | `SecurityConfig` (duas cadeias), `Role` |
-| **Funcionalidades completas** — 2 fluxos não-CRUD | 20 | ✅ | Agendar atendimento · Concluir atendimento |
-
-### Base do projeto
-
-| Requisito | Status | Onde encontrar |
-|-----------|--------|----------------|
-| Spring Boot + JPA | ✅ | `pom.xml`, todas as entidades |
-| Entidades com relacionamentos | ✅ | `entity/` (10 entidades) |
-| POO + Coesão + Desacoplamento | ✅ | Service/Controller/Repository separados |
-| API RESTful (Richardson nível 3) | ✅ | `TutorController` com HATEOAS |
-| Padrões de projeto | ✅ | Builder, DTO, Repository, Singleton |
-| JPQL + Query Methods | ✅ | `TutorRepository`, `VacinaRepository`, etc. |
-| Bean Validation | ✅ | Todos os DTOs `Request` |
-| Paginação | ✅ | Todos endpoints de listagem |
-| Ordenação | ✅ | `Pageable` com `sort=campo,asc\|desc` |
-| Busca com parâmetros | ✅ | `/buscar?nome=`, `/por-tutor/{id}`, etc. |
-| Cache | ✅ | `@Cacheable` em TutorService, PetShopService |
-| Tratamento de erros | ✅ | `GlobalExceptionHandler` |
-| DTOs | ✅ | `dto/` (12 DTOs) |
-| Swagger | ✅ | http://localhost:8080/swagger-ui.html |
-| Postman Collection | ✅ | `postman/Animed-API.postman_collection.json` |
-| Autenticação e autorização | ✅ | Spring Security + JWT, rotas por perfil |
-| Testes automatizados | ✅ | `src/test/`, 12 testes com JUnit 5 e Mockito |
-| Migrations versionadas | ✅ | `db/migration/`, V1 a V12 (Flyway) |
+| Arquivo | Para quê |
+|---------|----------|
+| `Dockerfile` | Build da API, usuário `animed` (não-root) |
+| `docker-compose.yml` | App + Oracle em container (mesmo desenho, na máquina) |
+| `scripts/criar-recursos-azure.sh` | Resource group + ACR + 2 ACIs |
+| `scripts/criar-recursos-azure.ps1` | Idem no Windows |
+| `scripts/docker-build-push.sh` | `docker build`, `tag` e `push` no ACR |
+| `scripts/remover-recursos-azure.sh` | Apaga o resource group |
+| `script_bd.sql` | DDL comentado + carga mínima de Tutor e Pet |
 
 ---
 
-## 👥 Equipe
+## 7. Rotas usadas na correção
+
+| Método | Rota | Uso no vídeo |
+|--------|------|----------------|
+| POST | `/api/auth/login` | Pegar o JWT |
+| POST | `/api/tutores` | Inserir tutor |
+| GET | `/api/tutores` | Consultar tutores |
+| PUT | `/api/tutores/{id}` | Atualizar tutor |
+| DELETE | `/api/tutores/{id}` | Excluir tutor |
+| POST | `/api/pets` | Inserir pet (FK do tutor) |
+| GET | `/api/pets` | Consultar pets |
+| PUT | `/api/pets/{id}` | Atualizar pet |
+| DELETE | `/api/pets/{id}` | Excluir pet |
+
+Painel web: `/login`. Swagger: `/swagger-ui.html`.
+
+---
+
+## 8. Equipe
 
 | Nome | RM |
 |------|------|
 | Erick Bernardes Bradaschia | 565733 |
 | Gabriel Santos Claudino | 564054 |
-| **Kaiky de Oliveira Silva** *(líder)* | 566067 |
+| Kaiky de Oliveira Silva | 566067 |
 | Lucas Fortes de Lima | 559523 |
 | Jonathan Moreira Gomes | 565060 |
 
-**Turma:** 2TDS Fevereiro/2026 - FIAP
+Turma 2TDS — FIAP.
 
----
-
-## 📄 Licença
-
-Projeto acadêmico desenvolvido para o Challenge FIAP 2026 em parceria com a Animed.
+O PDF da entrega tem **somente** nomes, RMs, GitHub e YouTube. O resto está neste README.
