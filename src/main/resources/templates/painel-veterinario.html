@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Agenda · Animed</title>
+    <link rel="stylesheet" th:href="@{/css/animed.css}">
+</head>
+<body>
+
+<header class="barra">
+    <span class="marca">Animed</span>
+    <nav>
+        <a th:href="@{/painel/veterinario}" class="ativo">Agenda</a>
+        <a th:href="@{/painel/veterinario/pacientes}">Pacientes</a>
+    </nav>
+    <div class="usuario">
+        <span th:text="${nome}">Veterinário</span>
+        <form th:action="@{/logout}" method="post" style="margin:0">
+            <button type="submit" class="botao contorno">Sair</button>
+        </form>
+    </div>
+</header>
+
+<main class="conteudo">
+    <p class="subtitulo">Área do veterinário</p>
+    <h1>Agenda</h1>
+    <p style="color: var(--texto-secundario); font-size: 14px; margin-top: 4px"
+       th:text="${agenda.veterinario()}">Veterinário</p>
+
+    <!-- Navegação entre dias sem sair da página -->
+    <div class="navegacao-dia" style="margin-top: 20px">
+        <a th:href="@{/painel/veterinario(data=${diaAnterior})}" class="botao contorno">‹</a>
+
+        <div style="text-align: center">
+            <div class="data"
+                 th:text="${#temporals.format(dia, 'EEEE, dd/MM/yyyy')}">data</div>
+            <div class="hoje" th:if="${dia.equals(hoje)}">hoje</div>
+            <a class="hoje" th:unless="${dia.equals(hoje)}"
+               th:href="@{/painel/veterinario}">voltar para hoje</a>
+        </div>
+
+        <a th:href="@{/painel/veterinario(data=${diaSeguinte})}" class="botao contorno">›</a>
+    </div>
+
+    <div class="aviso ok" th:if="${sucesso}" th:text="${sucesso}"></div>
+    <div class="aviso erro" th:if="${erro}" th:text="${erro}"></div>
+
+    <div class="resumo">
+        <div class="item">
+            <div class="numero" th:text="${#lists.size(agenda.atendimentos())}">0</div>
+            <div class="rotulo">marcados</div>
+        </div>
+        <div class="item">
+            <div class="numero verde" th:text="${realizados}">0</div>
+            <div class="rotulo">realizados</div>
+        </div>
+        <div class="item">
+            <div class="numero cinza" th:text="${agenda.horariosLivres()}">0</div>
+            <div class="rotulo">horários livres</div>
+        </div>
+    </div>
+
+    <div class="vazio" th:if="${#lists.isEmpty(agenda.atendimentos())}">
+        Nenhum atendimento marcado para esta data.
+    </div>
+
+    <div class="cartao" th:each="item : ${agenda.atendimentos()}">
+        <div class="linha-atendimento">
+            <div class="hora">
+                <span th:text="${#strings.substring(item.horario(), 0, 5)}">00:00</span>
+                <div class="duracao">30 min</div>
+            </div>
+
+            <div class="dados">
+                <div class="pet" th:text="${item.nomePet()}">Pet</div>
+                <div class="tutor" th:text="'Tutor: ' + ${item.nomeTutor()}">Tutor</div>
+                <div class="motivo" th:text="${item.motivo()}">Motivo</div>
+            </div>
+
+            <span class="selo"
+                  th:classappend="${item.status() == 'AGENDADA' ? 'agendado'
+                                  : (item.status() == 'REALIZADA' ? 'realizado' : 'falta')}"
+                  th:text="${item.status() == 'AGENDADA' ? 'Agendado'
+                           : (item.status() == 'REALIZADA' ? 'Realizado'
+                           : (item.status() == 'CANCELADA' ? 'Cancelado' : 'Não compareceu'))}">
+                Status
+            </span>
+
+            <!-- Só o que ainda está em aberto aceita ação -->
+            <div th:if="${item.status() == 'AGENDADA'}" style="display: flex; gap: 8px">
+                <a class="botao"
+                   th:href="@{'/painel/veterinario/atendimentos/' + ${item.idConsulta()} + '/concluir'}">
+                    Concluir
+                </a>
+
+                <form method="post" style="margin: 0"
+                      th:action="@{'/painel/veterinario/atendimentos/' + ${item.idConsulta()} + '/falta'}">
+                    <button type="submit" class="botao contorno"
+                            style="border-color: var(--erro); color: var(--erro)">
+                        Não veio
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</main>
+
+</body>
+</html>

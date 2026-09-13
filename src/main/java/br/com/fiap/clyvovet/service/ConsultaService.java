@@ -138,6 +138,7 @@ public class ConsultaService {
                 c.getMotivo(),
                 c.getDiagnostico(),
                 c.getPrescricao(),
+                c.getOrientacao(),
                 c.getValor(),
                 c.getStatus(),
                 c.getVeterinario(),

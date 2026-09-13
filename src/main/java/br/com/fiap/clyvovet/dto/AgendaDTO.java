@@ -121,7 +121,25 @@ public class AgendaDTO {
 
             @NotNull(message = "Motivo é obrigatório")
             @Size(max = 250)
-            String motivo
+            String motivo,
+
+            /** Preferência do tutor. Nulo: a clínica indica o mais tranquilo. */
+            Long idVeterinario
+    ) {}
+
+    /** Um veterinário e como está a agenda dele na data. */
+    public record VeterinarioDisponivel(
+            Long id,
+            String nome,
+            int horariosLivres,
+            int atendimentosNoDia,
+            boolean sugerido
+    ) {}
+
+    /** Corpo clínico da data, para o tutor escolher com quem quer passar. */
+    public record CorpoClinico(
+            LocalDate data,
+            List<VeterinarioDisponivel> veterinarios
     ) {}
 
     public record AgendamentoConfirmado(

@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -37,9 +38,17 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final UsuarioDetailsService usuarioDetailsService;
 
+    /**
+     * Segurança da API REST, consumida pelo aplicativo mobile.
+     *
+     * Vale só para /api/**: é sem sessão, autentica por token JWT e responde
+     * erro em JSON. As páginas web têm a própria cadeia, logo abaixo.
+     */
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    @Order(1)
+    public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
         http
+            .securityMatcher("/api/**", "/swagger-ui/**", "/v3/api-docs/**", "/h2-console/**")
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -106,6 +115,47 @@ public class SecurityConfig {
             .authenticationProvider(authenticationProvider())
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .headers(h -> h.frameOptions(f -> f.sameOrigin())); // necessário para o console H2
+
+        return http.build();
+    }
+
+    /**
+     * Segurança das páginas web (Sprint 3).
+     *
+     * Aqui a autenticação é por formulário e sessão, não por token: o
+     * navegador não tem onde guardar um JWT com segurança, e quem abre o
+     * painel é uma pessoa, não o aplicativo.
+     *
+     * O acesso é separado por perfil — /painel/tutor é do tutor,
+     * /painel/veterinario é do veterinário — e quem não estiver autenticado
+     * não alcança nenhuma das duas.
+     */
+    @Bean
+    @Order(2)
+    public SecurityFilterChain webFilterChain(HttpSecurity http) throws Exception {
+        http
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/", "/login", "/css/**", "/js/**", "/imagens/**").permitAll()
+                .requestMatchers("/actuator/health/**").permitAll()
+                .requestMatchers("/painel/veterinario/**").hasRole("DOUTOR")
+                .requestMatchers("/painel/tutor/**").hasRole("TUTOR")
+                .anyRequest().authenticated()
+            )
+            .formLogin(form -> form
+                .loginPage("/login")
+                .usernameParameter("email")
+                .passwordParameter("senha")
+                // Cada perfil cai no próprio painel depois de entrar
+                .successHandler(new PainelPorPerfilHandler())
+                .failureUrl("/login?erro")
+                .permitAll()
+            )
+            .logout(logout -> logout
+                .logoutUrl("/logout")
+                .logoutSuccessUrl("/login?saiu")
+                .permitAll()
+            )
+            .authenticationProvider(authenticationProvider());
 
         return http.build();
     }

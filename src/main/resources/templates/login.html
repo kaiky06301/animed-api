@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Entrar · Animed</title>
+    <link rel="stylesheet" th:href="@{/css/animed.css}">
+</head>
+<body>
+
+<div class="tela-login">
+    <div class="caixa-login">
+        <div class="marca">Animed</div>
+        <p class="frase">Cuidado contínuo para o seu pet</p>
+
+        <div class="cartao">
+            <div class="aviso erro" th:if="${param.erro}">
+                E-mail ou senha inválidos.
+            </div>
+            <div class="aviso ok" th:if="${param.saiu}">
+                Sessão encerrada.
+            </div>
+            <div class="aviso erro" th:if="${param.semTutor}">
+                Este acesso não está vinculado a um tutor.
+            </div>
+
+            <form th:action="@{/login}" method="post">
+                <div class="campo">
+                    <label for="email">E-mail</label>
+                    <input type="email" id="email" name="email"
+                           placeholder="seu@email.com" required autofocus>
+                </div>
+
+                <div class="campo">
+                    <label for="senha">Senha</label>
+                    <input type="password" id="senha" name="senha"
+                           placeholder="Sua senha" required>
+                </div>
+
+                <button type="submit" class="botao" style="width: 100%">Entrar</button>
+            </form>
+
+            <p class="demo">
+                Acesso de demonstração<br>
+                tutor@animed.com.br · animed123<br>
+                doutor@animed.com.br · animed123
+            </p>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

@@ -41,6 +41,12 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
                                  @Param("fim") LocalDateTime fim,
                                  Pageable pageable);
 
+    /** Atendimentos do tutor em um horário exato, de qualquer pet dele. */
+    @Query("SELECT c FROM Consulta c JOIN FETCH c.pet p "
+            + "WHERE p.tutor.id = :idTutor AND c.dataHora = :dataHora")
+    List<Consulta> findDoTutorNoHorario(@Param("idTutor") Long idTutor,
+                                        @Param("dataHora") LocalDateTime dataHora);
+
     @Query("SELECT c FROM Consulta c WHERE c.pet.tutor.id = :idTutor ORDER BY c.dataHora DESC")
     Page<Consulta> findByTutor(@Param("idTutor") Long idTutor, Pageable pageable);
 }
