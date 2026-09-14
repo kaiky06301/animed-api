@@ -1,6 +1,87 @@
-# Animed API — Sprint 3 (DevOps Tools & Cloud Computing)
+# Animed API
 
-API REST + painel web de **cuidado contínuo e gamificação para pets**. Challenge FIAP 2026.
+API REST + painel web de **cuidado contínuo e gamificação para pets**. Challenge FIAP 2026 — turma 2TDSR, empresa parceira Clyvo VET.
+
+Este repositório atende a duas disciplinas da Sprint 3:
+
+| Disciplina | Onde está |
+|------------|-----------|
+| **Java Advanced** — frontend, Spring Security, Flyway e fluxos completos | [seção A](#a--java-advanced), abaixo |
+| **DevOps Tools & Cloud Computing** — publicação na Azure | [seção B](#b--devops-tools--cloud-computing), a partir do item 1 |
+
+---
+
+# A — Java Advanced
+
+## O problema e a solução
+
+A jornada de saúde do pet é **episódica e reativa**: o tutor procura a clínica quando o problema já aconteceu e some entre um evento e outro. O pet adoece por prevenção esquecida e a clínica perde recorrência.
+
+O Animed transforma isso em cuidado contínuo por gamificação: **cada ato de cuidado vira pontos, os pontos viram nível, e o nível vira desconto real em pet shops parceiros**.
+
+## Camada de visualização
+
+Painel web em **Thymeleaf**, com folha de estilo própria (`static/css/animed.css`). Duas áreas distintas, cada uma com suas telas:
+
+| Área | Telas |
+|------|-------|
+| **Tutor** | painel com pontos e nível, meus pets, agendamento, histórico de atendimentos |
+| **Veterinário** | agenda do dia, pacientes, ficha clínica, conclusão de atendimento, cadastro de pessoas |
+
+O login (`/login`) usa formulário próprio, e o redirecionamento após autenticar depende do perfil — `PainelPorPerfilHandler` manda o veterinário para `/painel/veterinario` e o tutor para `/painel/tutor`.
+
+## Spring Security — dois perfis com permissões diferentes
+
+`SecurityConfig` declara **duas cadeias de filtro** separadas por `@Order` e `securityMatcher`:
+
+| Cadeia | Alcance | Autenticação |
+|--------|---------|--------------|
+| `apiFilterChain` (@Order 1) | `/api/**`, Swagger | JWT sem estado |
+| `webFilterChain` (@Order 2) | painel web | formulário com sessão |
+
+Proteção de rotas por perfil:
+
+```java
+.requestMatchers("/painel/veterinario/**").hasRole("DOUTOR")
+.requestMatchers("/painel/tutor/**").hasRole("TUTOR")
+.requestMatchers("/api/usuarios/**").hasRole("DOUTOR")
+.anyRequest().authenticated()
+```
+
+Um tutor que digite `/painel/veterinario` na barra recebe 403 — a proteção não depende de esconder o link na tela.
+
+## Flyway
+
+Doze migrations versionadas em `src/main/resources/db/migration`, de `V1__init_schema.sql` a `V12`. O schema nunca é criado pelo Hibernate: sob Oracle o `ddl-auto` é `validate`, de modo que divergência entre entidade e tabela quebra a subida em vez de corrigir silenciosamente.
+
+## Fluxos completos (além do CRUD)
+
+**1. Agendamento com resolução de veterinário.** O tutor escolhe o profissional ou deixa o sistema decidir. Sem preferência, `AgendaService.veterinarioMaisTranquilo()` compara a carga do dia entre os veterinários ativos e devolve o menos ocupado. O serviço recusa horário fora do expediente, horário já tomado e — regra de negócio real — **um segundo agendamento do mesmo tutor no mesmo horário**, porque ninguém está em duas consultas ao mesmo tempo.
+
+**2. Atendimento e pontuação.** O veterinário conclui o atendimento registrando diagnóstico, conduta e retorno; o tutor ganha pontos e pode subir de nível. Se o paciente falta, os pontos do agendamento voltam atrás. Nenhuma das duas ações é aceita antes da hora marcada: `exigirQueOHorarioJaTenhaChegado()` recusa concluir ou dar falta em atendimento que ainda não começou.
+
+## Validações
+
+Bean Validation nos DTOs (`@NotBlank`, `@Email`, `@CPF`, `@Size`, `@Pattern`, `@DecimalMin/Max`) e regras de negócio nos serviços, com `BusinessException` traduzida pelo `GlobalExceptionHandler` em 422 com mensagem em português. O formulário devolve o erro no campo, não uma tela de stack trace.
+
+## Como executar localmente
+
+```bash
+git clone https://github.com/kaiky06301/animed-api
+cd animed-api
+./mvnw spring-boot:run -Dspring-boot.run.profiles=h2
+```
+
+| Endereço | O que é |
+|----------|---------|
+| http://localhost:8080/login | painel web |
+| http://localhost:8080/swagger-ui/index.html | documentação da API |
+
+Contas de demonstração: `doutor@animed.com.br` e `tutor@animed.com.br`, ambas com senha `animed123`.
+
+---
+
+# B — DevOps Tools & Cloud Computing
 
 **Opção de entrega:** ACR + ACI (app e banco **100% containerizados**).  
 Nada de App Service. Nada de banco PaaS misturado com container.
