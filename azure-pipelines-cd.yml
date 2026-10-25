@@ -1,0 +1,73 @@
+# =========================================
+# CD - Animed API (Sprint 4)
+# Dispara sozinho quando o CI termina e publica um artefato novo:
+# baixa o JAR e faz o deploy no Azure Web App (Java 17, Linux).
+# Credenciais do banco vêm do grupo de variáveis "animed-secrets" (secret).
+# =========================================
+trigger: none
+pr: none
+
+resources:
+  pipelines:
+    - pipeline: ci
+      source: 'animed-ci'
+      trigger:
+        branches:
+          include:
+            - master
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  - group: animed-secrets
+  - name: azureSubscription
+    value: 'azure-lucas'
+  - name: webAppName
+    value: 'animed-api-559523'
+
+stages:
+  - stage: Deploy
+    displayName: 'Deploy no Azure Web App'
+    jobs:
+      - deployment: WebApp
+        displayName: 'Publicar animed-api.jar'
+        environment: 'producao'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - download: ci
+                  artifact: 'animed-api'
+                  displayName: 'Baixar artefato do CI'
+
+                - task: AzureWebApp@1
+                  displayName: 'Deploy do JAR'
+                  inputs:
+                    azureSubscription: '$(azureSubscription)'
+                    appType: 'webAppLinux'
+                    appName: '$(webAppName)'
+                    package: '$(Pipeline.Workspace)/ci/animed-api/animed-api.jar'
+                    runtimeStack: 'JAVA|17-java17'
+                    appSettings: >-
+                      -SPRING_PROFILES_ACTIVE oracle
+                      -SPRING_DATASOURCE_URL "$(DB_URL)"
+                      -SPRING_DATASOURCE_USERNAME "$(DB_USER)"
+                      -SPRING_DATASOURCE_PASSWORD "$(DB_PASSWORD)"
+                      -ANIMED_JWT_SECRET "$(JWT_SECRET)"
+
+                - task: AzureCLI@2
+                  displayName: 'Conferir saúde da API'
+                  inputs:
+                    azureSubscription: '$(azureSubscription)'
+                    scriptType: 'bash'
+                    scriptLocation: 'inlineScript'
+                    inlineScript: |
+                      url="https://$(webAppName).azurewebsites.net/actuator/health"
+                      for i in $(seq 1 30); do
+                        status=$(curl -s -o /dev/null -w '%{http_code}' "$url" || true)
+                        echo "Tentativa $i: HTTP $status"
+                        if [ "$status" = "200" ]; then curl -s "$url"; exit 0; fi
+                        sleep 10
+                      done
+                      echo "API não respondeu 200 em 5 minutos"; exit 1

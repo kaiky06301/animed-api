@@ -1,0 +1,60 @@
+# =========================================
+# CI - Animed API (Sprint 4)
+# Dispara a cada alteração na branch master: compila, roda os testes
+# automatizados e publica o JAR como artefato para o CD.
+# =========================================
+trigger:
+  branches:
+    include:
+      - master
+
+pr: none
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  MAVEN_OPTS: '-Dmaven.repo.local=$(Pipeline.Workspace)/.m2/repository'
+
+stages:
+  - stage: Build
+    displayName: 'Build e testes'
+    jobs:
+      - job: Maven
+        displayName: 'Maven package + JUnit'
+        steps:
+          - task: Cache@2
+            displayName: 'Cache das dependências Maven'
+            inputs:
+              key: 'maven | "$(Agent.OS)" | pom.xml'
+              restoreKeys: |
+                maven | "$(Agent.OS)"
+              path: '$(Pipeline.Workspace)/.m2/repository'
+
+          # package roda o ciclo completo: compila, executa os testes (H2 em memória
+          # via perfil de teste) e gera target/animed-api.jar.
+          - task: Maven@4
+            displayName: 'Compilar e testar'
+            inputs:
+              mavenPomFile: 'pom.xml'
+              goals: 'package'
+              options: '-B'
+              javaHomeOption: 'JDKVersion'
+              jdkVersionOption: '1.17'
+              mavenOptions: '$(MAVEN_OPTS)'
+              publishJUnitResults: true
+              testResultsFiles: '**/surefire-reports/TEST-*.xml'
+              testRunTitle: 'Testes JUnit - Animed API'
+
+          - task: CopyFiles@2
+            displayName: 'Separar o JAR'
+            inputs:
+              SourceFolder: '$(Build.SourcesDirectory)/target'
+              Contents: 'animed-api.jar'
+              TargetFolder: '$(Build.ArtifactStagingDirectory)'
+
+          - task: PublishPipelineArtifact@1
+            displayName: 'Publicar artefato'
+            inputs:
+              targetPath: '$(Build.ArtifactStagingDirectory)'
+              artifact: 'animed-api'
