@@ -1,4 +1,4 @@
-# =========================================
+﻿# =========================================
 # CI - Animed API (Sprint 4)
 # Dispara a cada alteração na branch master: compila, roda os testes
 # automatizados e publica o JAR como artefato para o CD.
@@ -10,8 +10,9 @@ trigger:
 
 pr: none
 
+# Agente self-hosted (pool Default): a org nova ainda não tem agente hospedado liberado.
 pool:
-  vmImage: ubuntu-latest
+  name: Default
 
 variables:
   MAVEN_OPTS: '-Dmaven.repo.local=$(Pipeline.Workspace)/.m2/repository'

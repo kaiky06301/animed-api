@@ -1,4 +1,4 @@
-# =========================================
+﻿# =========================================
 # CD - Animed API (Sprint 4)
 # Dispara sozinho quando o CI termina e publica um artefato novo:
 # baixa o JAR e faz o deploy no Azure Web App (Java 17, Linux).
@@ -16,8 +16,9 @@ resources:
           include:
             - master
 
+# Agente self-hosted (pool Default): a org nova ainda não tem agente hospedado liberado.
 pool:
-  vmImage: ubuntu-latest
+  name: Default
 
 variables:
   - group: animed-secrets
@@ -56,18 +57,17 @@ stages:
                       -SPRING_DATASOURCE_PASSWORD "$(DB_PASSWORD)"
                       -ANIMED_JWT_SECRET "$(JWT_SECRET)"
 
-                - task: AzureCLI@2
+                # O plano gratuito demora para subir o Java na primeira chamada;
+                # espera até 5 minutos pelo /actuator/health responder 200.
+                - powershell: |
+                    $url = "https://$(webAppName).azurewebsites.net/actuator/health"
+                    for ($i = 1; $i -le 30; $i++) {
+                      try {
+                        $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 20 $url
+                        Write-Host "Tentativa ${i}: HTTP $($r.StatusCode)"
+                        if ($r.StatusCode -eq 200) { Write-Host $r.Content; exit 0 }
+                      } catch { Write-Host "Tentativa ${i}: $($_.Exception.Message)" }
+                      Start-Sleep -Seconds 10
+                    }
+                    Write-Host "API não respondeu 200 em 5 minutos"; exit 1
                   displayName: 'Conferir saúde da API'
-                  inputs:
-                    azureSubscription: '$(azureSubscription)'
-                    scriptType: 'bash'
-                    scriptLocation: 'inlineScript'
-                    inlineScript: |
-                      url="https://$(webAppName).azurewebsites.net/actuator/health"
-                      for i in $(seq 1 30); do
-                        status=$(curl -s -o /dev/null -w '%{http_code}' "$url" || true)
-                        echo "Tentativa $i: HTTP $status"
-                        if [ "$status" = "200" ]; then curl -s "$url"; exit 0; fi
-                        sleep 10
-                      done
-                      echo "API não respondeu 200 em 5 minutos"; exit 1
