@@ -50,12 +50,15 @@ stages:
                     appName: '$(webAppName)'
                     package: '$(Pipeline.Workspace)/ci/animed-api/animed-api.jar'
                     runtimeStack: 'JAVA|17-java17'
+                    # O schema do Oracle FIAP já tem tabelas de outras disciplinas; com
+                    # baseline em 0 o Flyway não pula a V1 ao adotar um schema não vazio.
                     appSettings: >-
                       -SPRING_PROFILES_ACTIVE oracle
                       -SPRING_DATASOURCE_URL "$(DB_URL)"
                       -SPRING_DATASOURCE_USERNAME "$(DB_USER)"
                       -SPRING_DATASOURCE_PASSWORD "$(DB_PASSWORD)"
                       -ANIMED_JWT_SECRET "$(JWT_SECRET)"
+                      -SPRING_FLYWAY_BASELINE_VERSION 0
 
                 # O plano gratuito demora para subir o Java na primeira chamada;
                 # espera até 5 minutos pelo /actuator/health responder 200.
