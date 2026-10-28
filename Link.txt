@@ -1,0 +1,11 @@
+Animed API - Sprint 4 (DevOps Tools & Cloud Computing)
+
+Repositório GitHub: https://github.com/kaiky06301/animed-api
+Vídeo no YouTube:
+
+Integrantes (turma 2TDSR):
+- Erick Bernardes Bradaschia - RM 565733
+- Gabriel Santos Claudino - RM 564054
+- Jonathan Moreira Gomes - RM 565060
+- Kaiky de Oliveira Silva - RM 566067
+- Lucas Fortes de Lima - RM 559523
