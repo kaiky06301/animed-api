@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Animed — Arquitetura e CI/CD (Sprint 4)</title>
+<style>
+  :root { --pink:#ED145B; --azure:#0078D4; --ink:#16191d; --muted:#5b6570; --line:#d5dbe1; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#eef1f4; color:var(--ink);
+         font-family:"Segoe UI",system-ui,Arial,sans-serif; }
+  header { background:#fff; border-top:8px solid var(--pink); padding:26px 44px 18px;
+           border-bottom:1px solid var(--line); }
+  h1 { margin:0; font-size:27px; letter-spacing:-.2px; }
+  header p { margin:8px 0 0; color:var(--muted); font-size:15px; }
+  .wrap { padding:28px 44px 56px; max-width:1560px; margin:0 auto; }
+  .canvas { background:#fff; border:1px solid var(--line); border-radius:14px;
+            padding:16px; overflow-x:auto; }
+  .canvas img { display:block; min-width:1200px; width:100%; height:auto; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:26px; margin-top:26px; }
+  @media (max-width:980px){ .grid { grid-template-columns:1fr; } .wrap, header { padding-left:16px; padding-right:16px; } }
+  .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:22px 24px; }
+  .card h2 { margin:0 0 14px; font-size:17px; }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th,td { border-bottom:1px solid var(--line); padding:9px 8px; text-align:left; vertical-align:top; }
+  th { color:var(--muted); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.4px; }
+  td.n { width:34px; }
+  .badge { display:inline-block; width:23px; height:23px; line-height:23px; text-align:center;
+           border-radius:50%; background:var(--azure); color:#fff; font-size:12.5px; font-weight:700; }
+  .badge.p { background:var(--pink); }
+  code { background:#f3f5f7; border:1px solid var(--line); border-radius:4px; padding:1px 5px; font-size:12.5px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Animed — arquitetura e esteira CI/CD</h1>
+  <p>Sprint 4 · DevOps Tools &amp; Cloud Computing · Azure DevOps (Repos + Pipelines) → Azure Web App → Oracle FIAP</p>
+</header>
+
+<div class="wrap">
+<div class="canvas"><img src="diagrama-cicd.svg" alt="Arquitetura e fluxo CI/CD da Animed API"></div>
+
+<div class="grid">
+  <div class="card">
+    <h2>Fluxo numerado</h2>
+    <table>
+      <tr><th></th><th>O que acontece</th></tr>
+      <tr><td class="n"><span class="badge">1</span></td><td>O desenvolvedor altera o código na IDE e faz <code>git push</code> na <code>master</code> do Azure Repos.</td></tr>
+      <tr><td class="n"><span class="badge">2</span></td><td>O push dispara sozinho a pipeline de CI <code>animed-ci</code>.</td></tr>
+      <tr><td class="n"><span class="badge p">3</span></td><td>O agente compila com JDK 17 e roda os 13 testes JUnit (H2 em memória).</td></tr>
+      <tr><td class="n"><span class="badge">4</span></td><td>O CI publica o artefato <code>animed-api</code> (JAR) e os resultados na aba Tests.</td></tr>
+      <tr><td class="n"><span class="badge">5</span></td><td>O artefato novo dispara a pipeline de CD <code>animed-cd</code>.</td></tr>
+      <tr><td class="n"><span class="badge p">6</span></td><td>O CD lê os dados sensíveis do grupo <code>animed-secrets</code> (senha e JWT como secret).</td></tr>
+      <tr><td class="n"><span class="badge">7</span></td><td>O deploy é registrado no environment <code>producao</code> e autentica na Azure pela service connection, sem senha.</td></tr>
+      <tr><td class="n"><span class="badge">8</span></td><td>AzureWebApp@1 publica o JAR no Web App e o CD confere o <code>/actuator/health</code>.</td></tr>
+      <tr><td class="n"><span class="badge p">9</span></td><td>A aplicação conecta no Oracle da FIAP por JDBC e o Flyway aplica as migrations.</td></tr>
+      <tr><td class="n"><span class="badge">10</span></td><td>Tutor e veterinário acessam o painel e a API por HTTPS.</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Onde cada ferramenta atua</h2>
+    <table>
+      <tr><th>Ferramenta</th><th>Papel</th></tr>
+      <tr><td>IDE + Git</td><td>Edição do código e push para a <code>master</code>.</td></tr>
+      <tr><td>Azure Repos</td><td>Repositório Git do projeto, com o código e os dois YAMLs.</td></tr>
+      <tr><td>Azure Pipelines (CI)</td><td>Build Maven, testes JUnit e publicação do artefato.</td></tr>
+      <tr><td>Azure Pipelines (CD)</td><td>Download do artefato, deploy no Web App e health check.</td></tr>
+      <tr><td>Library</td><td>Variáveis protegidas: usuário, senha do banco e segredo JWT.</td></tr>
+      <tr><td>Environment + service connection</td><td>Histórico de deploys e acesso à Azure por workload identity.</td></tr>
+      <tr><td>Agente self-hosted</td><td>Máquina que executa os jobs das duas pipelines (pool Default).</td></tr>
+      <tr><td>Azure App Service</td><td>Plano F1 e Web App Linux Java 17 que hospeda a aplicação.</td></tr>
+      <tr><td>Oracle FIAP</td><td>Banco em nuvem com as tabelas criadas pelo Flyway.</td></tr>
+      <tr><td>GitHub</td><td>Cópia pública do código para a entrega.</td></tr>
+    </table>
+  </div>
+</div>
+</div>
+</body>
+</html>

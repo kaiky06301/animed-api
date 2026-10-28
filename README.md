@@ -1,17 +1,173 @@
 # Animed API
 
-API REST + painel web de **cuidado contínuo e gamificação para pets**. Challenge FIAP 2026 — turma 2TDSR, empresa parceira Clyvo VET.
-
-Este repositório atende a duas disciplinas da Sprint 3:
+API REST e painel web de **cuidado contínuo e gamificação para pets**. Animed é a solução da equipe para o Challenge da Clyvo VET (FIAP 2026, turma 2TDSR).
 
 | Disciplina | Onde está |
 |------------|-----------|
-| **Java Advanced** — frontend, Spring Security, Flyway e fluxos completos | [seção A](#a--java-advanced), abaixo |
-| **DevOps Tools & Cloud Computing** — publicação na Azure | [seção B](#b--devops-tools--cloud-computing), a partir do item 1 |
+| **DevOps Tools & Cloud Computing, Sprint 4**: CI/CD no Azure DevOps | [abaixo](#sprint-4--devops-tools--cloud-computing) |
+| **Java Advanced**: frontend, Spring Security, Flyway e fluxos | [seção Java Advanced](#java-advanced) |
+| DevOps Sprint 3 (ACR + ACI), histórico | [docs/SPRINT3-DEVOPS.md](docs/SPRINT3-DEVOPS.md) |
 
 ---
 
-# A — Java Advanced
+# Sprint 4 — DevOps Tools & Cloud Computing
+
+| | |
+|---|---|
+| Projeto no Azure DevOps | https://dev.azure.com/RM559523/Sprint%204%20%E2%80%93%20Azure%20DevOps |
+| Repositório GitHub | https://github.com/kaiky06301/animed-api |
+| Aplicação publicada | https://animed-api-559523.azurewebsites.net/login |
+| Swagger | https://animed-api-559523.azurewebsites.net/swagger-ui.html |
+| Diagrama | [docs/diagrama-cicd.png](docs/diagrama-cicd.png) · [versão com legenda](docs/diagrama-cicd.html) |
+
+## 1. Descrição da solução
+
+A jornada de saúde do pet costuma ser **episódica e reativa**: o tutor só procura a clínica quando o problema já aconteceu e some entre um evento e outro. O Animed transforma isso em cuidado contínuo. **Cada ato de cuidado (vacina, consulta, peso atualizado, medicação) vira pontos, os pontos viram nível e o nível vira desconto real em pet shops parceiros.**
+
+A aplicação tem duas frentes:
+
+- **API REST** com JWT para tutores, pets, vacinas, consultas, medicamentos, pet shops e pontuação, documentada no Swagger.
+- **Painel web** com uma área do tutor (pontos, pets, agendamento) e uma área do veterinário (agenda, ficha clínica, conclusão de atendimento).
+
+Nesta sprint o foco é a **esteira de CI/CD**: cada push na `master` do Azure Repos compila, roda os testes, publica o artefato e faz o deploy sozinho no Azure Web App, ligado ao Oracle da FIAP.
+
+### Stack
+
+| Camada | Tecnologia |
+|--------|------------|
+| Linguagem | Java 17 |
+| Framework | Spring Boot 3.3.4: Web, Data JPA, Security (JWT + formulário), Validation, Cache (Caffeine), Actuator |
+| Visualização | Thymeleaf + CSS próprio |
+| Documentação da API | SpringDoc OpenAPI (Swagger UI) |
+| Banco em nuvem | **Oracle Database da FIAP** (`oracle.fiap.com.br:1521`, SID `orcl`) |
+| Migrations | Flyway (V1 a V12) |
+| Build e testes | Maven + JUnit 5 + Mockito (H2 em memória só nos testes) |
+| Repositório | Azure Repos (Git, branch `master`), com cópia pública no GitHub |
+| CI/CD | Azure Pipelines em YAML (`azure-pipelines-ci.yml` e `azure-pipelines-cd.yml`) |
+| Execução dos jobs | Agente self-hosted, pool `Default` |
+| Hospedagem | Azure App Service: Web App Linux Java 17, plano F1 |
+| Segredos | Library do Azure DevOps (grupo de variáveis `animed-secrets`, valores marcados como secret) |
+
+## 2. Arquitetura e fluxo CI/CD
+
+![Arquitetura e fluxo CI/CD](docs/diagrama-cicd.png)
+
+| # | O que acontece | Ferramenta |
+|---|----------------|------------|
+| 1 | O desenvolvedor altera o código na IDE e faz `git push` na `master` | IDE + Git → Azure Repos |
+| 2 | O push dispara sozinho a pipeline de CI | Azure Pipelines (`animed-ci`) |
+| 3 | O agente compila com JDK 17 e roda os **13 testes JUnit** | Maven + JUnit no agente self-hosted |
+| 4 | O CI publica o artefato `animed-api` (o JAR) e os resultados dos testes | Pipeline Artifacts + aba Tests |
+| 5 | O artefato novo dispara a pipeline de CD | Azure Pipelines (`animed-cd`) |
+| 6 | O CD lê usuário, senha do banco e segredo JWT do grupo protegido | Library `animed-secrets` |
+| 7 | O deploy passa pelo environment `producao` e usa a service connection | Environment + service connection por workload identity |
+| 8 | O JAR é publicado no Web App e o CD confere o `/actuator/health` | AzureWebApp@1 → Azure Web App |
+| 9 | A aplicação conecta no Oracle e o Flyway aplica as migrations | JDBC → Oracle FIAP |
+| 10 | Tutor e veterinário usam a aplicação por HTTPS | Navegador / Swagger |
+
+## 3. Banco de dados em nuvem
+
+Oracle da FIAP, schema `rm559523`. O Flyway cria e versiona as tabelas (`src/main/resources/db/migration`). Como esse schema já tinha tabelas de outras disciplinas, o CD passa `SPRING_FLYWAY_BASELINE_VERSION=0`: assim o Flyway adota o schema sem pular a V1.
+
+Tabelas usadas no CRUD do vídeo: **TB_TUTOR** (1) → **TB_PET** (N).
+
+```sql
+SELECT ID_TUTOR, NOME, EMAIL, TELEFONE FROM TB_TUTOR ORDER BY ID_TUTOR;
+SELECT ID_PET, NOME, ESPECIE, RACA, PESO_KG, ID_TUTOR FROM TB_PET ORDER BY ID_PET;
+```
+
+## 4. Projeto no Azure DevOps
+
+| Campo | Valor |
+|-------|-------|
+| Project name | Sprint 4 – Azure DevOps |
+| Description | Projeto para entrega da Sprint 4 do professor João Carlos Menk, com os integrantes (RM - nome - turma) |
+| Visibility | Private |
+| Version control | Git |
+| Work item process | Scrum |
+| Professor | João Carlos Menk, convidado com acesso **Basic** |
+
+## 5. Pipelines
+
+### CI (`azure-pipelines-ci.yml`, pipeline `animed-ci`)
+
+- **Gatilho:** qualquer push na branch `master`.
+- **Cache Maven:** reaproveita as dependências entre execuções.
+- **Maven package (JDK 17):** compila, roda os testes e gera `target/animed-api.jar`.
+- **Testes:** os relatórios do Surefire são publicados na aba **Tests** da execução.
+- **Artefato:** o JAR é publicado como `animed-api` no próprio Azure DevOps.
+
+### CD (`azure-pipelines-cd.yml`, pipeline `animed-cd`)
+
+- **Gatilho:** conclusão do CI com artefato novo (`resources.pipelines`), sem ação manual.
+- **Baixar artefato:** pega o `animed-api.jar` gerado pelo CI.
+- **Deploy (AzureWebApp@1):** publica no Web App `animed-api-559523` e grava as app settings (perfil `oracle`, URL, usuário e senha do banco, segredo JWT).
+- **Health check:** espera até 5 minutos o `/actuator/health` responder 200. Se não responder, o deploy falha.
+
+### Variáveis protegidas
+
+Nenhum usuário, senha ou token está no código nem nos YAMLs. Tudo vem do grupo **`animed-secrets`** da Library:
+
+| Variável | Tipo |
+|----------|------|
+| `DB_URL` | variável |
+| `DB_USER` | variável |
+| `DB_PASSWORD` | **secret** (mascarada nos logs) |
+| `JWT_SECRET` | **secret** (mascarada nos logs) |
+
+A conexão com a Azure (`azure-lucas`) usa **workload identity federation**: não há senha de service principal guardada em lugar nenhum.
+
+## 6. Recursos na Azure
+
+| Recurso | Nome |
+|---------|------|
+| Resource group | `rg-animed-sprint4` (Mexico Central) |
+| Plano do App Service | `plan-animed-sprint4` (Linux, F1) |
+| Web App | `animed-api-559523` (Java 17) |
+
+## 7. Roteiro do vídeo
+
+Antes de gravar, ligue o agente (`run.cmd` na pasta do agente) e deixe abertos a IDE, o Azure DevOps, o Portal da Azure, o banco (SQL Developer ou SQLcl) e o Swagger.
+
+1. **Ferramentas:** mostre a IDE, o projeto no Azure DevOps (Repos, Pipelines, Library), o Portal e o banco.
+2. **Configuração:** abra os dois YAMLs e explique cada stage, job e task (seção 5).
+3. **Mudança visível no código, nunca no README:** troque, por exemplo, a frase da tela de login em `src/main/resources/templates/login.html` (`Cuidado contínuo para o seu pet`). Faça commit e push na `master`.
+4. **CI automático:** mostre a execução começando sozinha. Abra os detalhes e comente cada etapa.
+5. **Artefato e testes:** mostre o artefato `animed-api` e a aba **Tests** com os 13 aprovados.
+6. **CD automático:** mostre o CD começando ao fim do CI. Comente o download, o deploy e o health check.
+7. **Portal:** abra o Web App `animed-api-559523` e mostre o deploy recente (Deployment Center ou Log stream).
+8. **App com a alteração:** abra `/login` e mostre a frase nova.
+9. **CRUD com SELECT:** no Swagger, faça login (`POST /api/auth/login` com `doutor@animed.com.br` / `animed123`), autorize o token e rode o SELECT depois de cada operação:
+
+| # | Operação | Prova no banco |
+|---|----------|----------------|
+| 1 | `GET /api/tutores` e `GET /api/pets` | SELECT mostra as mesmas linhas |
+| 2 | `POST /api/tutores` | Linha nova em TB_TUTOR |
+| 3 | `POST /api/pets` com o `idTutor` criado | Linha nova em TB_PET apontando para o tutor |
+| 4 | `PUT /api/tutores/{id}` (telefone) | Telefone mudou |
+| 5 | `PUT /api/pets/{id}` (peso) | Peso mudou |
+| 6 | `DELETE /api/pets/{id}` e depois `DELETE /api/tutores/{id}` | As linhas sumiram |
+
+```json
+POST /api/tutores
+{ "nome": "Marcos Ferreira", "email": "marcos.ferreira@animed.com.br",
+  "cpf": "318.444.190-07", "telefone": "(11) 98822-4410" }
+```
+
+```json
+POST /api/pets
+{ "nome": "Bidu", "especie": "CACHORRO", "sexo": "MACHO", "raca": "Beagle",
+  "dataNascimento": "2021-08-09", "pesoKg": 12.4, "castrado": true,
+  "observacoesSaude": "Alergia a frango", "idTutor": 0 }
+```
+
+Troque o `idTutor` pelo id do tutor criado no passo 2.
+
+> No plano F1 a primeira requisição depois de um tempo parado demora para acordar o Java. Abra o `/actuator/health` um minuto antes de começar o CRUD.
+
+---
+
+# Java Advanced
 
 ## O problema e a solução
 
@@ -81,372 +237,14 @@ Contas de demonstração: `doutor@animed.com.br` e `tutor@animed.com.br`, ambas 
 
 ---
 
-# B — DevOps Tools & Cloud Computing
-
-**Opção de entrega:** ACR + ACI (app e banco **100% containerizados**).  
-Nada de App Service. Nada de banco PaaS misturado com container.
-
-| | |
-|---|---|
-| Repositório | https://github.com/kaiky06301/animed-api |
-| Diagrama | [docs/diagrama-arquitetura.html](docs/diagrama-arquitetura.html) |
-| DDL do banco | [script_bd.sql](script_bd.sql) |
-| PDF da entrega | [docs/entrega-pdf.html](docs/entrega-pdf.html) |
-
----
-
-## 1. O que a aplicação faz
-
-A Animed transforma a saúde do pet de um modelo **episódico** (só vai ao vet na emergência) em uma jornada **contínua**: o tutor cadastra o pet, registra vacina, consulta e medicação, e ganha pontos. Os pontos sobem o nível (Básico → Cuidador → Premium) e liberam desconto em pet shops parceiros.
-
-O núcleo persistido no Oracle é **Tutor + Pet** (1:N). As demais tabelas (vacina, consulta, pontuação) giram em torno desse núcleo.
-
-CRUD completo nas duas tabelas: `POST/GET/PUT/DELETE` em `/api/tutores` e `/api/pets`. Também há painel web em `/login` (Thymeleaf).
-
-## 2. Benefícios para o negócio
-
-| Quem | Problema hoje | O que a Animed entrega |
-|------|----------------|------------------------|
-| Tutor | Esquece vacina e retorno | Rotina de cuidado recompensada com pontos |
-| Pet | Cuidado só na crise | Mais check-up e vacina em dia |
-| Clínica | Paciente some depois da consulta | Recorrência e histórico longitudinal |
-| Pet shop | Compra avulsa | Tráfego de tutor com desconto progressivo |
-| Animed | Sem recorrência | Comissão na venda + assinatura do parceiro |
-
----
-
-## 3. Stack e opção de nuvem
-
-| Camada | Tecnologia |
-|--------|------------|
-| Linguagem | Java 17 |
-| API / Web | Spring Boot 3.3.4 + JPA + Flyway + JWT + Thymeleaf + Swagger |
-| Banco (nuvem) | Oracle XE 21 **em container** (ACI) |
-| Imagens | Azure Container Registry |
-| Execução | Azure Container Instance (API + Oracle) |
-| Build da imagem | kaniko rodando como container no ACI |
-| Provisionamento | Azure CLI (nenhum recurso criado pelo Portal) |
-
-H2 existe **somente** para `mvn test` na máquina. A entrega roda em Oracle no ACI.
-
-### Por que o build não usa `docker build`
-
-Duas restrições reais deste ambiente:
-
-1. **ACR Tasks é bloqueado** na subscription Azure for Students da FIAP — `az acr build` devolve `TasksOperationsNotAllowed`.
-2. **Docker Desktop não está instalado** nas máquinas da equipe.
-
-A solução é o **kaniko**: um construtor de imagens que roda como container comum. Ele sobe num ACI, clona este repositório do GitHub, executa o `Dockerfile` e dá `push` da imagem no ACR — sem daemon Docker em lugar nenhum. O build inteiro leva cerca de 70 segundos.
-
-O `Dockerfile` continua sendo o mesmo e segue valendo com `docker build` para quem tiver Docker (veja `scripts/docker-build-push.sh`).
-
----
-
-## 4. Arquitetura (recursos e fluxo)
-
-Abra **[docs/diagrama-arquitetura.html](docs/diagrama-arquitetura.html)** no navegador — é o desenho da arquitetura com os recursos, o fluxo numerado e a legenda.
-
-| Recurso | Papel nesta solução |
-|---------|---------------------|
-| GitHub | Código-fonte, `Dockerfile` e scripts. É de onde o kaniko lê o contexto do build e de onde parte o clone no vídeo. |
-| Azure CLI | Cria resource group, ACR e os Container Instances. Nada pelo Portal. |
-| Azure Container Registry | Guarda as duas imagens: `animed-api:1.0` e `oracle-xe:21`. |
-| ACI `aci-kaniko-build` | Container temporário que compila a imagem da API e some depois. |
-| ACI `aci-animed-api` | Executa a aplicação com o usuário `animed` (não-root), porta 8080. |
-| ACI `aci-animed-oracle` | Executa o banco Oracle XE em container, porta 1521. |
-| Flyway | Na primeira subida da API aplica as 12 migrations que criam o schema. |
-
-Senha do banco e segredo JWT entram por **variável de ambiente protegida** (`--secure-environment-variables`): não aparecem no código nem no `az container show`.
-
----
-
-## 5. Como publicar e testar (siga esta ordem no vídeo)
-
-### 5.1 Pré-requisitos
-
-- Git e Azure CLI (`az login`)
-- Uma conta Azure com permissão para criar Resource Group, ACR e ACI
-- **Não precisa de Docker** — o build acontece dentro da Azure
-
-Opcional, só para conferir o banco por fora: SQLcl, SQL Developer ou DBeaver.
-
-### 5.2 Clonar o repositório (começar o vídeo por aqui)
-
-```bash
-git clone https://github.com/kaiky06301/animed-api.git
-cd animed-api
-```
-
-### 5.3 Entrar na Azure
-
-```bash
-az login
-az account show
-```
-
-### 5.4 Definir as senhas (nunca vão para o Git)
-
-O segredo JWT **precisa ser Base64 puro**. A aplicação faz `Decoders.BASE64.decode()`: um valor com `-` ou `_` derruba a API na subida com `Illegal base64 character`.
-
-PowerShell (Windows):
-
-```powershell
-$env:ORACLE_PASSWORD   = 'Animed#2026Fiap'
-$env:APP_USER_PASSWORD = 'Animed#2026Fiap'
-$b = New-Object byte[] 48
-[Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b)
-$env:ANIMED_JWT_SECRET = [Convert]::ToBase64String($b)
-```
-
-Bash (Linux / Mac / Cloud Shell):
-
-```bash
-export ORACLE_PASSWORD='Animed#2026Fiap'
-export APP_USER_PASSWORD='Animed#2026Fiap'
-export ANIMED_JWT_SECRET="$(openssl rand -base64 48)"
-```
-
-### 5.5 Criar tudo com um script (Azure CLI do começo ao fim)
-
-```powershell
-.\scripts\criar-recursos-azure.ps1
-```
-
-```bash
-bash scripts/criar-recursos-azure.sh
-```
-
-O script executa, em ordem: registro dos providers → resource group → ACR → import da imagem do Oracle → build da imagem da API com kaniko → ACI do banco → espera o Oracle aceitar conexão → ACI da aplicação → espera o health responder `UP`. No fim ele imprime os endereços.
-
-### 5.6 Os mesmos passos, comando a comando
-
-Para mostrar cada recurso nascendo na câmera, sem o script:
-
-```bash
-# 1. Resource group
-az group create --name rg-animed-sprint3 --location brazilsouth
-
-# 2. Container Registry
-az acr create --resource-group rg-animed-sprint3 --name acranimed566067 \
-  --sku Basic --admin-enabled true --location brazilsouth
-
-# 3. Imagem do Oracle vai para o ACR
-az acr import --name acranimed566067 \
-  --source docker.io/gvenzl/oracle-xe:21-slim --image oracle-xe:21 --force
-
-# 4. Build da imagem da API (kaniko dentro da Azure, sem Docker local)
-export ACR=acranimed566067
-export RG=rg-animed-sprint3
-bash scripts/build-imagem-kaniko.sh
-
-# 5. Conferir as duas imagens no registro
-az acr repository list --name acranimed566067 -o table
-```
-
-```bash
-# 6. Container do banco
-ACR_USER=$(az acr credential show --name acranimed566067 --query username -o tsv)
-ACR_PASS=$(az acr credential show --name acranimed566067 --query "passwords[0].value" -o tsv)
-
-az container create \
-  --resource-group rg-animed-sprint3 \
-  --name aci-animed-oracle \
-  --image acranimed566067.azurecr.io/oracle-xe:21 \
-  --registry-login-server acranimed566067.azurecr.io \
-  --registry-username "$ACR_USER" --registry-password "$ACR_PASS" \
-  --cpu 2 --memory 4 --ports 1521 --os-type Linux \
-  --dns-name-label animed-oracle-566067 --restart-policy OnFailure \
-  --environment-variables ORACLE_DATABASE=CLYVOVET APP_USER=clyvo \
-  --secure-environment-variables \
-    ORACLE_PASSWORD="$ORACLE_PASSWORD" \
-    APP_USER_PASSWORD="$APP_USER_PASSWORD"
-```
-
-Espere o Oracle abrir a porta 1521 (leva alguns minutos na primeira vez — ele cria o banco e o usuário `clyvo`). Só então:
-
-```bash
-# 7. Container da aplicação
-az container create \
-  --resource-group rg-animed-sprint3 \
-  --name aci-animed-api \
-  --image acranimed566067.azurecr.io/animed-api:1.0 \
-  --registry-login-server acranimed566067.azurecr.io \
-  --registry-username "$ACR_USER" --registry-password "$ACR_PASS" \
-  --cpu 1 --memory 2 --ports 8080 --os-type Linux \
-  --dns-name-label animed-api-566067 --restart-policy OnFailure \
-  --environment-variables \
-    SPRING_PROFILES_ACTIVE=oracle \
-    SPRING_DATASOURCE_URL="jdbc:oracle:thin:@//animed-oracle-566067.brazilsouth.azurecontainer.io:1521/CLYVOVET" \
-    SPRING_DATASOURCE_USERNAME=clyvo \
-    ORACLE_SCHEMA=CLYVO \
-  --secure-environment-variables \
-    SPRING_DATASOURCE_PASSWORD="$APP_USER_PASSWORD" \
-    ANIMED_JWT_SECRET="$ANIMED_JWT_SECRET"
-```
-
-> A cota do Azure for Students é de **6 cores** por região. Oracle (2) + API (1) + kaniko (2) cabe, mas o container do build precisa ser removido antes de subir mais coisa — os scripts já fazem isso.
-
-### 5.7 Conferir o que subiu
-
-```bash
-az acr repository list --name acranimed566067 -o table
-az container list --resource-group rg-animed-sprint3 -o table
-az container show -g rg-animed-sprint3 -n aci-animed-api --query ipAddress.fqdn -o tsv
-az container logs -g rg-animed-sprint3 -n aci-animed-api
-```
-
-No log da API aparece `Successfully applied 12 migrations to schema "CLYVO"` — é o Flyway criando o banco.
-
-Endereços da aplicação publicada:
-
-```
-http://animed-api-566067.brazilsouth.azurecontainer.io:8080/login
-http://animed-api-566067.brazilsouth.azurecontainer.io:8080/swagger-ui.html
-http://animed-api-566067.brazilsouth.azurecontainer.io:8080/actuator/health
-```
-
-O container da aplicação **não roda como root**: o `Dockerfile` cria o usuário `animed` e declara `USER animed`. Para evidenciar:
-
-```bash
-az container exec -g rg-animed-sprint3 -n aci-animed-api --exec-command "id"
-# uid=100(animed) gid=101(animed)
-```
-
----
-
-## 6. CRUD com evidência no banco (item 9.3 da correção)
-
-Duas tabelas do núcleo, relacionadas entre si: **TB_TUTOR** (1) → **TB_PET** (N).
-
-Contas criadas na subida da API:
-
-| Perfil | E-mail | Senha |
-|--------|--------|--------|
-| Veterinário | doutor@animed.com.br | animed123 |
-| Tutor | tutor@animed.com.br | animed123 |
-
-### 6.1 Abrir o SELECT no banco em container
-
-```bash
-az container exec -g rg-animed-sprint3 -n aci-animed-oracle \
-  --exec-command "sqlplus -s clyvo/$APP_USER_PASSWORD@//localhost:1521/CLYVOVET"
-```
-
-Ou conecte SQLcl / SQL Developer / DBeaver em:
-
-```
-host    animed-oracle-566067.brazilsouth.azurecontainer.io
-porta   1521
-service CLYVOVET
-usuário clyvo
-```
-
-Os dois SELECTs usados o tempo todo:
-
-```sql
-SELECT ID_TUTOR, NOME, EMAIL, TELEFONE FROM TB_TUTOR ORDER BY ID_TUTOR;
-SELECT ID_PET, NOME, ESPECIE, RACA, PESO_KG, ID_TUTOR FROM TB_PET ORDER BY ID_PET;
-```
-
-### 6.2 Sequência a executar (sem cortes no vídeo)
-
-Deixe o Swagger (ou o painel em `/login`) de um lado e o SELECT do outro. A cada operação, rode o SELECT de novo.
-
-| # | Operação | Onde | O que mostrar no banco |
-|---|----------|------|------------------------|
-| 1 | `POST /api/auth/login` com o doutor | Swagger | — (pega o token) |
-| 2 | **Consulta**: `GET /api/tutores` e `GET /api/pets` | Swagger | SELECT nas duas tabelas: as linhas do seed |
-| 3 | **Inclusão**: `POST /api/tutores` | Swagger | SELECT em TB_TUTOR: a linha nova apareceu |
-| 4 | **Inclusão**: `POST /api/pets` com `idTutor` do tutor criado | Swagger | SELECT em TB_PET: linha nova com a FK apontando para o tutor |
-| 5 | **Alteração**: `PUT /api/tutores/{id}` mudando telefone | Swagger | SELECT em TB_TUTOR: telefone mudou na mesma linha |
-| 6 | **Alteração**: `PUT /api/pets/{id}` mudando o peso | Swagger | SELECT em TB_PET: peso mudou |
-| 7 | **Exclusão**: `DELETE /api/pets/{id}` | Swagger | SELECT em TB_PET: a linha sumiu |
-| 8 | **Exclusão**: `DELETE /api/tutores/{id}` | Swagger | SELECT em TB_TUTOR: a linha sumiu |
-
-Corpos prontos para copiar:
-
-```json
-POST /api/tutores
-{
-  "nome": "Marcos Ferreira",
-  "email": "marcos.ferreira@animed.com.br",
-  "cpf": "318.444.190-07",
-  "telefone": "(11) 98822-4410"
-}
-```
-
-```json
-POST /api/pets
-{
-  "nome": "Bidu",
-  "especie": "CACHORRO",
-  "sexo": "MACHO",
-  "raca": "Beagle",
-  "dataNascimento": "2021-08-09",
-  "pesoKg": 12.4,
-  "castrado": true,
-  "observacoesSaude": "Alergia a frango",
-  "idTutor": 5
-}
-```
-
-O seed do Flyway já entrega 4 tutores e 4 pets com conteúdo real (Marina/Thor, Carlos/Rex, …), o que cobre o requisito das **2+ linhas significativas** nas duas tabelas. As linhas do CRUD acima são criadas e apagadas na frente da câmera.
-
----
-
-## 7. Scripts entregues
-
-| Arquivo | Para quê |
-|---------|----------|
-| `Dockerfile` | Imagem da API em dois estágios; usuário `animed`, não-root |
-| `docker-compose.yml` | Mesmo desenho (app + Oracle em container) na máquina |
-| `scripts/criar-recursos-azure.ps1` | Cria **tudo** na Azure via CLI — Windows |
-| `scripts/criar-recursos-azure.sh` | Idem, em bash / Cloud Shell |
-| `scripts/build-imagem-kaniko.sh` | Build e push da imagem dentro da Azure, sem Docker |
-| `scripts/docker-build-push.sh` | Alternativa com `docker build` para quem tem Docker |
-| `scripts/remover-recursos-azure.sh` | Apaga o resource group inteiro |
-| `scripts/dados-demo.sh` | Recria o cenário de demonstração pelos endpoints |
-| `script_bd.sql` | DDL comentado das tabelas + carga mínima |
-| `src/main/resources/db/migration/` | As 12 migrations que o Flyway aplica na nuvem |
-
-### Limpar tudo depois da gravação
-
-```bash
-bash scripts/remover-recursos-azure.sh
-# ou
-az group delete --name rg-animed-sprint3 --yes --no-wait
-```
-
----
-
-## 8. Rotas usadas na correção
-
-| Método | Rota | Uso no vídeo |
-|--------|------|----------------|
-| POST | `/api/auth/login` | Pegar o JWT |
-| GET | `/api/tutores` | Consultar tutores |
-| POST | `/api/tutores` | Inserir tutor |
-| PUT | `/api/tutores/{id}` | Atualizar tutor |
-| DELETE | `/api/tutores/{id}` | Excluir tutor |
-| GET | `/api/pets` | Consultar pets |
-| POST | `/api/pets` | Inserir pet (FK do tutor) |
-| PUT | `/api/pets/{id}` | Atualizar pet |
-| DELETE | `/api/pets/{id}` | Excluir pet |
-
-Painel web: `/login`. Swagger: `/swagger-ui.html`. Health: `/actuator/health`.
-
----
-
-## 9. Equipe
-
-| Nome | RM |
-|------|------|
-| Erick Bernardes Bradaschia | 565733 |
-| Gabriel Santos Claudino | 564054 |
-| Kaiky de Oliveira Silva | 566067 |
-| Lucas Fortes de Lima | 559523 |
-| Jonathan Moreira Gomes | 565060 |
-
-Turma 2TDS — FIAP.
-
-O PDF da entrega tem **somente** nomes, RMs, GitHub e YouTube. O resto está neste README.
+# Equipe
+
+| Nome | RM | Turma |
+|------|----|-------|
+| Erick Bernardes Bradaschia | 565733 | 2TDSR |
+| Gabriel Santos Claudino | 564054 | 2TDSR |
+| Jonathan Moreira Gomes | 565060 | 2TDSR |
+| Kaiky de Oliveira Silva | 566067 | 2TDSR |
+| Lucas Fortes de Lima | 559523 | 2TDSR |
+
+FIAP · Challenge 2026 · Clyvo VET

@@ -1,0 +1,211 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 740" width="1600" height="740" role="img" aria-label="Arquitetura e fluxo CI/CD da Animed API no Azure DevOps e na Azure">
+  <defs>
+    <marker id="seta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#0078D4"/>
+    </marker>
+    <marker id="setaRosa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ED145B"/>
+    </marker>
+    <marker id="setaCinza" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8b93a0"/>
+    </marker>
+    <style>
+      text  { font-family: "Segoe UI", Arial, sans-serif; }
+      .rot  { font-size: 15px; font-weight: 600; fill: #16191d; }
+      .rotW { font-size: 15px; font-weight: 600; fill: #ffffff; }
+      .sub  { font-size: 12.5px; fill: #5b6570; }
+      .subW { font-size: 12.5px; fill: #dfe5ea; }
+      .subG { font-size: 12.5px; fill: #1a7f37; }
+      .subP { font-size: 12.5px; fill: #ED145B; }
+      .lbl  { font-size: 11.5px; fill: #5b6570; }
+      .zona { font-size: 12px; font-weight: 600; fill: #5b6570; letter-spacing: .6px; }
+      .zonaW{ font-size: 12px; font-weight: 600; fill: #ffffff; letter-spacing: .6px; }
+      .num  { font-size: 12px; font-weight: 700; fill: #ffffff; text-anchor: middle; }
+      .fluxo{ stroke: #0078D4; stroke-width: 2.2; fill: none; marker-end: url(#seta); }
+      .dados{ stroke: #ED145B; stroke-width: 2.4; fill: none; marker-end: url(#setaRosa); }
+      .apoio{ stroke: #8b93a0; stroke-width: 1.8; fill: none; stroke-dasharray: 6 4; marker-end: url(#setaCinza); }
+    </style>
+  </defs>
+
+  <rect width="1600" height="740" fill="#ffffff"/>
+
+  <!-- ===================== PESSOAS ===================== -->
+  <rect x="20" y="40" width="230" height="520" rx="12" fill="#fafbfc" stroke="#c8d0d8" stroke-dasharray="6 4"/>
+  <text x="38" y="66" class="zona">EQUIPE E AVALIAÇÃO</text>
+
+  <!-- Desenvolvedor -->
+  <rect x="40" y="90" width="190" height="110" rx="10" fill="#16191d"/>
+  <circle cx="72" cy="124" r="12" fill="#fff"/>
+  <path d="M57 152 a15 15 0 0 1 30 0 z" fill="#fff"/>
+  <text x="98" y="122" class="rotW">Desenvolvedor</text>
+  <text x="98" y="141" class="subW">equipe 2TDSR</text>
+  <text x="56" y="176" class="subW">IDE + Git: altera o código</text>
+  <text x="56" y="192" class="subW">e faz push na master</text>
+
+  <!-- GitHub -->
+  <rect x="40" y="250" width="190" height="96" rx="10" fill="#fff" stroke="#16191d" stroke-width="2"/>
+  <circle cx="68" cy="278" r="11" fill="#16191d"/>
+  <text x="88" y="283" class="rot">GitHub</text>
+  <text x="56" y="306" class="sub">kaiky06301/animed-api</text>
+  <text x="56" y="324" class="sub">cópia pública do código</text>
+  <text x="56" y="340" class="sub">para a entrega</text>
+
+  <!-- Professor -->
+  <rect x="40" y="420" width="190" height="110" rx="10" fill="#fff" stroke="#0078D4" stroke-width="2"/>
+  <circle cx="72" cy="452" r="12" fill="#0078D4"/>
+  <path d="M57 480 a15 15 0 0 1 30 0 z" fill="#0078D4"/>
+  <text x="98" y="450" class="rot">Professor</text>
+  <text x="98" y="469" class="sub">acesso Basic</text>
+  <text x="56" y="504" class="sub">avalia Repos, Pipelines,</text>
+  <text x="56" y="520" class="sub">artefatos e testes</text>
+
+  <path class="apoio" d="M135 200 L135 247"/>
+  <text x="143" y="228" class="lbl">git push (cópia)</text>
+  <path class="apoio" d="M230 475 L287 475"/>
+
+  <!-- ===================== AZURE DEVOPS ===================== -->
+  <rect x="290" y="40" width="720" height="520" rx="16" fill="#f4f9fd" stroke="#0078D4" stroke-width="2"/>
+  <rect x="290" y="40" width="560" height="32" rx="16" fill="#0078D4"/>
+  <text x="312" y="61" class="zonaW">AZURE DEVOPS · dev.azure.com/RM559523 · Sprint 4 – Azure DevOps</text>
+
+  <!-- Azure Repos -->
+  <rect x="320" y="100" width="170" height="150" rx="10" fill="#fff" stroke="#0078D4" stroke-width="1.6"/>
+  <text x="405" y="130" class="rot" text-anchor="middle">Azure Repos</text>
+  <text x="405" y="156" class="sub" text-anchor="middle">Git · branch master</text>
+  <text x="405" y="176" class="sub" text-anchor="middle">código Java +</text>
+  <text x="405" y="194" class="sub" text-anchor="middle">azure-pipelines-ci.yml</text>
+  <text x="405" y="212" class="sub" text-anchor="middle">azure-pipelines-cd.yml</text>
+
+  <!-- Pipeline CI -->
+  <rect x="530" y="100" width="230" height="150" rx="10" fill="#fff" stroke="#0078D4" stroke-width="1.6"/>
+  <rect x="530" y="100" width="230" height="34" rx="10" fill="#0078D4"/>
+  <rect x="530" y="120" width="230" height="14" fill="#0078D4"/>
+  <text x="645" y="122" class="rotW" text-anchor="middle">Pipeline CI · animed-ci</text>
+  <text x="548" y="156" class="sub">gatilho: push na master</text>
+  <text x="548" y="176" class="sub">cache das dependências Maven</text>
+  <circle cx="742" cy="196" r="11" fill="#ED145B"/><text x="742" y="200" class="num">3</text>
+  <text x="548" y="200" class="sub">Maven package · JDK 17</text>
+  <text x="548" y="218" class="subG">13 testes JUnit (H2)</text>
+  <text x="548" y="238" class="sub">publica JAR e resultados</text>
+
+  <!-- Artefato + testes -->
+  <rect x="800" y="100" width="180" height="150" rx="10" fill="#fff" stroke="#0078D4" stroke-width="1.6"/>
+  <text x="890" y="130" class="rot" text-anchor="middle">Artefato</text>
+  <text x="890" y="152" class="sub" text-anchor="middle">animed-api</text>
+  <text x="890" y="170" class="sub" text-anchor="middle">(animed-api.jar)</text>
+  <line x1="820" y1="186" x2="960" y2="186" stroke="#d5dbe1"/>
+  <text x="890" y="208" class="rot" text-anchor="middle">Aba Tests</text>
+  <text x="890" y="228" class="subG" text-anchor="middle">13 aprovados</text>
+
+  <!-- Library -->
+  <rect x="320" y="330" width="170" height="150" rx="10" fill="#fff" stroke="#ED145B" stroke-width="1.6"/>
+  <text x="405" y="360" class="rot" text-anchor="middle">Library</text>
+  <text x="405" y="380" class="sub" text-anchor="middle">grupo animed-secrets</text>
+  <text x="405" y="404" class="sub" text-anchor="middle">DB_URL · DB_USER</text>
+  <text x="405" y="424" class="subP" text-anchor="middle">DB_PASSWORD (secret)</text>
+  <text x="405" y="444" class="subP" text-anchor="middle">JWT_SECRET (secret)</text>
+  <text x="405" y="466" class="lbl" text-anchor="middle">fora do código</text>
+
+  <!-- Pipeline CD -->
+  <rect x="530" y="330" width="230" height="150" rx="10" fill="#fff" stroke="#0078D4" stroke-width="1.6"/>
+  <rect x="530" y="330" width="230" height="34" rx="10" fill="#0078D4"/>
+  <rect x="530" y="350" width="230" height="14" fill="#0078D4"/>
+  <text x="645" y="352" class="rotW" text-anchor="middle">Pipeline CD · animed-cd</text>
+  <text x="548" y="386" class="sub">gatilho: artefato novo do CI</text>
+  <text x="548" y="406" class="sub">baixa o animed-api.jar</text>
+  <text x="548" y="426" class="sub">AzureWebApp@1: deploy</text>
+  <text x="548" y="446" class="sub">+ app settings com segredos</text>
+  <text x="548" y="468" class="subG">health check /actuator/health</text>
+
+  <!-- Environment + service connection -->
+  <rect x="800" y="330" width="180" height="150" rx="10" fill="#fff" stroke="#0078D4" stroke-width="1.6"/>
+  <text x="890" y="360" class="rot" text-anchor="middle">Environment</text>
+  <text x="890" y="380" class="sub" text-anchor="middle">producao</text>
+  <text x="890" y="398" class="sub" text-anchor="middle">histórico de deploys</text>
+  <line x1="820" y1="412" x2="960" y2="412" stroke="#d5dbe1"/>
+  <text x="890" y="434" class="rot" text-anchor="middle">Service connection</text>
+  <text x="890" y="454" class="sub" text-anchor="middle">azure-lucas</text>
+  <text x="890" y="472" class="lbl" text-anchor="middle">workload identity, sem senha</text>
+
+  <!-- Agente self-hosted -->
+  <rect x="290" y="600" width="720" height="90" rx="12" fill="#fafbfc" stroke="#8b93a0" stroke-width="1.6" stroke-dasharray="6 4"/>
+  <text x="312" y="628" class="zona">AGENTE SELF-HOSTED · POOL DEFAULT</text>
+  <text x="312" y="652" class="sub">Máquina da equipe com JDK 17 e Maven. Recebe e executa os jobs das duas pipelines.</text>
+  <text x="312" y="672" class="sub">A organização nova não tem agente hospedado liberado pela Microsoft.</text>
+  <path class="apoio" d="M645 600 L645 483"/>
+  <text x="653" y="545" class="lbl">executa os jobs do CI e do CD</text>
+
+  <!-- ===================== AZURE ===================== -->
+  <rect x="1050" y="40" width="360" height="520" rx="16" fill="#f4f9fd" stroke="#0078D4" stroke-width="2"/>
+  <rect x="1050" y="40" width="300" height="32" rx="16" fill="#0078D4"/>
+  <text x="1072" y="61" class="zonaW">MICROSOFT AZURE · Portal</text>
+
+  <rect x="1070" y="90" width="320" height="450" rx="12" fill="none" stroke="#0078D4" stroke-dasharray="6 4"/>
+  <text x="1086" y="114" class="zona">rg-animed-sprint4 · Mexico Central</text>
+
+  <rect x="1090" y="130" width="280" height="74" rx="10" fill="#fff" stroke="#0078D4" stroke-width="1.6"/>
+  <text x="1230" y="160" class="rot" text-anchor="middle">Plano do App Service F1</text>
+  <text x="1230" y="182" class="sub" text-anchor="middle">plan-animed-sprint4 · Linux · gratuito</text>
+
+  <rect x="1090" y="240" width="280" height="170" rx="10" fill="#0078D4"/>
+  <text x="1230" y="272" class="rotW" text-anchor="middle">Azure Web App</text>
+  <text x="1230" y="292" class="subW" text-anchor="middle">animed-api-559523</text>
+  <text x="1230" y="318" class="subW" text-anchor="middle">Java 17 · Spring Boot 3.3</text>
+  <text x="1230" y="338" class="subW" text-anchor="middle">/login · /swagger-ui.html</text>
+  <text x="1230" y="358" class="subW" text-anchor="middle">/actuator/health</text>
+  <text x="1230" y="384" class="subW" text-anchor="middle">segredos em app settings</text>
+
+  <text x="1130" y="460" class="sub">Plano e Web App aparecem no Portal</text>
+  <text x="1130" y="478" class="sub">com o deploy recente registrado</text>
+  <path d="M1230 204 L1230 238" stroke="#0078D4" stroke-width="1.6" stroke-dasharray="3 3" fill="none"/>
+
+  <!-- Oracle FIAP -->
+  <rect x="1050" y="600" width="360" height="110" rx="12" fill="#fff" stroke="#ED145B" stroke-width="2"/>
+  <text x="1072" y="630" class="rot">Oracle Database · FIAP (nuvem)</text>
+  <text x="1072" y="652" class="sub">oracle.fiap.com.br:1521 · SID orcl · schema rm559523</text>
+  <text x="1072" y="672" class="sub">Flyway aplica as migrations V1 a V12</text>
+  <text x="1072" y="692" class="sub">CRUD conferido com SELECT em TB_TUTOR e TB_PET</text>
+
+  <!-- ===================== USUÁRIOS FINAIS ===================== -->
+  <rect x="1440" y="200" width="145" height="230" rx="12" fill="#fafbfc" stroke="#c8d0d8" stroke-dasharray="6 4"/>
+  <text x="1456" y="226" class="zona">USUÁRIO FINAL</text>
+  <rect x="1454" y="240" width="117" height="174" rx="10" fill="#16191d"/>
+  <circle cx="1512" cy="276" r="13" fill="#fff"/>
+  <path d="M1496 306 a16 16 0 0 1 32 0 z" fill="#fff"/>
+  <text x="1512" y="338" class="rotW" text-anchor="middle">Tutor e</text>
+  <text x="1512" y="356" class="rotW" text-anchor="middle">veterinário</text>
+  <text x="1512" y="380" class="subW" text-anchor="middle">navegador</text>
+  <text x="1512" y="398" class="subW" text-anchor="middle">ou Swagger</text>
+
+  <!-- ===================== FLUXO NUMERADO ===================== -->
+  <!-- 1 push -->
+  <path class="fluxo" d="M230 150 L317 150"/>
+  <circle cx="274" cy="150" r="12" fill="#0078D4"/><text x="274" y="154" class="num">1</text>
+  <!-- 2 gatilho CI -->
+  <path class="fluxo" d="M490 150 L527 150"/>
+  <circle cx="510" cy="126" r="12" fill="#0078D4"/><text x="510" y="130" class="num">2</text>
+  <!-- 4 publica artefato -->
+  <path class="fluxo" d="M760 150 L797 150"/>
+  <circle cx="780" cy="126" r="12" fill="#0078D4"/><text x="780" y="130" class="num">4</text>
+  <!-- 5 artefato dispara CD -->
+  <path class="fluxo" d="M890 250 L890 290 L700 290 L700 327"/>
+  <circle cx="795" cy="290" r="12" fill="#0078D4"/><text x="795" y="294" class="num">5</text>
+  <text x="880" y="280" class="lbl" text-anchor="end">artefato novo dispara o CD</text>
+  <!-- 6 segredos -->
+  <path class="dados" d="M490 405 L527 405"/>
+  <circle cx="510" cy="381" r="12" fill="#ED145B"/><text x="510" y="385" class="num">6</text>
+  <!-- 7 environment + conexão -->
+  <path class="fluxo" d="M760 405 L797 405"/>
+  <circle cx="780" cy="381" r="12" fill="#0078D4"/><text x="780" y="385" class="num">7</text>
+  <!-- 8 deploy no Web App -->
+  <path class="fluxo" d="M980 405 L1030 405 L1030 325 L1087 325"/>
+  <circle cx="1030" cy="365" r="12" fill="#0078D4"/><text x="1030" y="369" class="num">8</text>
+  <!-- 9 banco -->
+  <path class="dados" d="M1110 410 L1110 597"/>
+  <circle cx="1110" cy="560" r="12" fill="#ED145B"/><text x="1110" y="564" class="num">9</text>
+  <text x="1126" y="580" class="lbl">JDBC 1521 · Flyway</text>
+  <!-- 10 usuário -->
+  <path class="fluxo" d="M1454 325 L1373 325"/>
+  <circle cx="1412" cy="301" r="12" fill="#0078D4"/><text x="1412" y="305" class="num">10</text>
+  <text x="1414" y="345" class="lbl">HTTPS</text>
+</svg>
