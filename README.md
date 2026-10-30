@@ -5,7 +5,7 @@ API REST e painel web de **cuidado contínuo e gamificação para pets**. Animed
 | Disciplina | Onde está |
 |------------|-----------|
 | **DevOps Tools & Cloud Computing, Sprint 4**: CI/CD no Azure DevOps | [abaixo](#sprint-4--devops-tools--cloud-computing) |
-| **Java Advanced**: frontend, Spring Security, Flyway e fluxos | [seção Java Advanced](#java-advanced) |
+| **Java Advanced, Sprint 4**: app online, frontend, Spring Security, Flyway, fluxos e integração | [seção Java Advanced](#java-advanced) |
 | DevOps Sprint 3 (ACR + ACI), histórico | [docs/SPRINT3-DEVOPS.md](docs/SPRINT3-DEVOPS.md) |
 
 ---
@@ -169,6 +169,19 @@ Troque o `idTutor` pelo id do tutor criado no passo 2.
 
 # Java Advanced
 
+## Acesso à aplicação online
+
+| | |
+|---|---|
+| Painel web | https://animed-api-559523.azurewebsites.net/login |
+| Swagger | https://animed-api-559523.azurewebsites.net/swagger-ui.html |
+| Health check | https://animed-api-559523.azurewebsites.net/actuator/health |
+
+| Perfil | E-mail | Senha | Entra em |
+|--------|--------|-------|----------|
+| Tutor | `tutor@animed.com.br` | `animed123` | `/painel/tutor` |
+| Veterinário | `doutor@animed.com.br` | `animed123` | `/painel/veterinario` |
+
 ## O problema e a solução
 
 A jornada de saúde do pet é **episódica e reativa**: o tutor procura a clínica quando o problema já aconteceu e some entre um evento e outro. O pet adoece por prevenção esquecida e a clínica perde recorrência.
@@ -234,6 +247,42 @@ cd animed-api
 | http://localhost:8080/swagger-ui/index.html | documentação da API |
 
 Contas de demonstração: `doutor@animed.com.br` e `tutor@animed.com.br`, ambas com senha `animed123`.
+
+## Decisões de design e tecnologia
+
+| Decisão | Motivo |
+|---------|--------|
+| Spring Boot 3 + Java 17 | Web, JPA, Validation, Security e Actuator num só ecossistema |
+| Thymeleaf no servidor | A tela nasce já autenticada pela sessão do Spring Security, sem um segundo projeto de frontend |
+| Duas cadeias de segurança | O painel usa sessão; o app mobile e o Swagger usam JWT, e a mesma regra de perfil vale nos dois |
+| Flyway com `validate` | O banco evolui por versão junto com o código, e a mesma base sobe igual em H2, Oracle e Azure |
+| Regras nos serviços | Pontos, níveis, estorno por falta e conflito de horário ficam em `service/`, e não na tela |
+| Gamificação como centro | Ataca a causa do problema da Clyvo VET: o tutor não tem motivo para voltar entre um evento e outro |
+
+## Integração multidisciplinar
+
+A Animed é **um único produto**. Cada disciplina entrega uma parte dele e todas usam as mesmas regras: **pontos por cuidado, níveis Básico, Cuidador e Premium e desconto em parceiros**.
+
+| Disciplina | O que foi feito | Evidência |
+|------------|-----------------|-----------|
+| **Java Advanced** | Painel web do tutor e do veterinário e API REST com JWT: o núcleo do produto | este repositório, link online acima |
+| **Mobile App Development** | App React Native (Expo) do tutor que consome **esta API** na Azure: login JWT, pets, medicamentos com lembrete e foto do pet | https://github.com/kaiky06301/animed-app |
+| **Advanced Business Development with .NET** | API .NET 8 em camadas sobre Oracle e MongoDB (histórico de cuidado), com JWT por perfil, HATEOAS, health checks e ViaCEP | https://github.com/kaiky06301/animed-dotnet |
+| **Mastering Relational and Non-Relational Database** | Packages PL/SQL com a carga, o cálculo de nível e desconto, a exportação em JSON e gatilhos de auditoria; o mesmo modelo no MongoDB | scripts e PDF de modelagem entregues na disciplina; DDL em [script_bd.sql](script_bd.sql) |
+| **DevOps Tools & Cloud Computing** | CI/CD no Azure DevOps publicando esta aplicação no Web App | [seção Sprint 4 DevOps](#sprint-4--devops-tools--cloud-computing) |
+
+```
+App Mobile (tutor) ──JWT──▶ API Java na Azure ◀──sessão── Painel web (tutor / veterinário)
+                                  │
+                                  ▼
+                       Oracle (schema versionado pelo Flyway)
+                                  ▲
+               Packages PL/SQL ───┘  nível, desconto, JSON e auditoria
+
+API .NET ──▶ Oracle + MongoDB (histórico de cuidado do pet)
+```
+
+Na prática: o tutor registra o cuidado pelo **app**, o veterinário confirma o atendimento no **painel web**, os pontos caem no **Oracle** e o nível é recalculado. Tudo isso roda na **Azure**, publicado pelo **pipeline**.
 
 ---
 
